@@ -4,11 +4,12 @@ interface SidebarProps {
   logo: React.ReactNode;
   schoolName: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ logo, schoolName, children }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ logo, schoolName, children, className }) => {
   return (
-    <aside className="h-screen w-64 flex flex-col bg-gray-900 text-white shadow-lg">
+    <aside className={`h-screen w-64 flex flex-col bg-gray-900 text-white shadow-lg ${className}`}>
       <div className="flex items-center justify-center h-20 border-b border-gray-700">
         <div className="flex items-center space-x-3">
           {logo}

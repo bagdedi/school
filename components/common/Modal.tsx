@@ -6,10 +6,20 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  size?: 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   if (!isOpen) return null;
+  
+  const sizeClasses = {
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
+  };
 
   return (
     <div
@@ -20,10 +30,10 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       aria-labelledby="modal-title"
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-md m-4 p-6 relative"
+        className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} m-4 relative flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center border-b pb-3 mb-4">
+        <div className="flex-shrink-0 flex justify-between items-center border-b p-6">
           <h2 id="modal-title" className="text-xl font-bold text-gray-800">{title}</h2>
           <button
             onClick={onClose}
@@ -33,7 +43,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             <XIcon />
           </button>
         </div>
-        {children}
+        <div className="overflow-y-auto px-6 pb-6 pt-4">
+            {children}
+        </div>
       </div>
     </div>
   );

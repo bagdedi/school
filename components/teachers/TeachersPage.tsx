@@ -7,12 +7,50 @@ import { Modal } from '../common/Modal';
 import { TeacherForm } from './TeacherForm';
 
 const mockTeachers: Teacher[] = [
-  { id: 'T01', name: 'Dr. Eleanor Vance', subject: 'Physics', email: 'eleanor.v@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=t01' },
-  { id: 'T02', name: 'Mr. Samuel Reed', subject: 'History', email: 'samuel.r@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=t02' },
-  { id: 'T03', name: 'Ms. Clara Oswald', subject: 'English Literature', email: 'clara.o@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=t03' },
-  { id: 'T04', name: 'Mr. Alan Turing', subject: 'Computer Science', email: 'alan.t@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=t04' },
-  { id: 'T05', name: 'Dr. Rosalind Franklin', subject: 'Chemistry', email: 'rosalind.f@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=t05' },
-  { id: 'T06', name: 'Mr. David Attenborough', subject: 'Biology', email: 'david.a@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=t06' },
+  {
+    id: 'T01',
+    avatar: 'https://i.pravatar.cc/150?u=t01',
+    email: 'eleanor.v@northwood.edu',
+    phone: '555-0201',
+    firstName: 'Eleanor',
+    lastName: 'Vance',
+    gender: 'Female',
+    dateOfBirth: '1980-03-15',
+    placeOfBirth: 'London, UK',
+    nationality: 'British',
+    address: '10 Downing Street, London',
+    diploma: 'Doctorat',
+    specialty: 'Physics',
+    professionalStatus: 'Permanent',
+    yearsOfExperience: '15',
+    matricule: 'T2024001',
+    bank: 'Bank of Academia',
+    rib: '12345678901234567890',
+    idType: 'Passport',
+    idNumber: 'A1B23C456',
+  },
+   {
+    id: 'T02',
+    avatar: 'https://i.pravatar.cc/150?u=t02',
+    email: 'samuel.r@northwood.edu',
+    phone: '555-0202',
+    firstName: 'Samuel',
+    lastName: 'Reed',
+    gender: 'Male',
+    dateOfBirth: '1975-08-22',
+    placeOfBirth: 'New York, USA',
+    nationality: 'American',
+    address: '221B Baker Street',
+    diploma: 'Masters',
+    specialty: 'History',
+    professionalStatus: 'Permanent',
+    yearsOfExperience: '20',
+    matricule: 'T2024002',
+    bank: 'First National Teachers Bank',
+    rib: '09876543210987654321',
+    idType: 'CIN',
+    idNumber: '98765432',
+  },
 ];
 
 const TeacherCard: React.FC<{ teacher: Teacher, onEdit: (teacher: Teacher) => void; onDelete: (teacherId: string) => void; }> = ({ teacher, onEdit, onDelete }) => (
@@ -21,21 +59,21 @@ const TeacherCard: React.FC<{ teacher: Teacher, onEdit: (teacher: Teacher) => vo
         <button
             onClick={() => onEdit(teacher)}
             className="p-2 text-gray-400 hover:text-blue-600 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label={`Edit ${teacher.name}`}
+            aria-label={`Edit ${teacher.firstName} ${teacher.lastName}`}
         >
             <PencilIcon />
         </button>
         <button
             onClick={() => onDelete(teacher.id)}
             className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label={`Delete ${teacher.name}`}
+            aria-label={`Delete ${teacher.firstName} ${teacher.lastName}`}
         >
             <TrashIcon />
         </button>
     </div>
-    <img src={teacher.avatar} alt={teacher.name} className="w-24 h-24 rounded-full mb-4 mt-8 ring-4 ring-indigo-200" />
-    <h3 className="text-lg font-bold text-gray-800">{teacher.name}</h3>
-    <p className="text-indigo-600 font-semibold">{teacher.subject}</p>
+    <img src={teacher.avatar} alt={`${teacher.firstName} ${teacher.lastName}`} className="w-24 h-24 rounded-full mb-4 mt-8 ring-4 ring-indigo-200" />
+    <h3 className="text-lg font-bold text-gray-800">{`${teacher.firstName} ${teacher.lastName}`}</h3>
+    <p className="text-indigo-600 font-semibold">{teacher.specialty}</p>
     <p className="text-sm text-gray-500 mt-2">{teacher.email}</p>
   </div>
 );
@@ -44,6 +82,8 @@ const TeachersPage: React.FC = () => {
   const [teachers, setTeachers] = useState<Teacher[]>(mockTeachers);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
 
   const handleAddTeacher = () => {
     setEditingTeacher(null);
@@ -61,18 +101,19 @@ const TeachersPage: React.FC = () => {
     }
   };
   
-  const handleSaveTeacher = (teacherData: Omit<Teacher, 'id' | 'avatar'> & { id?: string }) => {
+  const handleSaveTeacher = (teacherData: Omit<Teacher, 'id' | 'avatar' | 'photoUrl' | 'matricule'>) => {
     if (editingTeacher) {
       // Update existing teacher
       setTeachers(
         teachers.map((t) =>
-          t.id === editingTeacher.id ? { ...t, ...teacherData } : t
+          t.id === editingTeacher.id ? { ...t, ...teacherData, matricule: t.matricule } : t
         )
       );
     } else {
       // Add new teacher
       const newTeacher: Teacher = {
         id: `T${String(teachers.length + 1).padStart(2, '0')}`,
+        matricule: `T2024${String(teachers.length + 1).padStart(3, '0')}`,
         ...teacherData,
         avatar: `https://i.pravatar.cc/150?u=${Math.random()}`,
       };
@@ -81,6 +122,19 @@ const TeachersPage: React.FC = () => {
     setIsModalOpen(false);
     setEditingTeacher(null);
   };
+
+  const uniqueSubjects = [...new Set(teachers.map(t => t.specialty))].sort();
+  
+  const filteredTeachers = teachers.filter(teacher => {
+    const searchMatch =
+      `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      teacher.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const subjectMatch = selectedSubject ? teacher.specialty === selectedSubject : true;
+
+    return searchMatch && subjectMatch;
+  });
 
   return (
     <>
@@ -99,8 +153,29 @@ const TeachersPage: React.FC = () => {
           </button>
         </div>
 
+        <div className="flex items-center space-x-4 mb-6">
+          <input
+            type="search"
+            placeholder="Search by name, email, or subject..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full md:w-1/3 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <select
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">All Subjects</option>
+            {uniqueSubjects.map(subject => (
+              <option key={subject} value={subject}>{subject}</option>
+            ))}
+          </select>
+        </div>
+
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {teachers.map(teacher => (
+          {filteredTeachers.map(teacher => (
             <TeacherCard 
               key={teacher.id} 
               teacher={teacher} 
@@ -114,6 +189,7 @@ const TeachersPage: React.FC = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
         title={editingTeacher ? 'Edit Teacher' : 'Add New Teacher'}
+        size="4xl"
       >
         <TeacherForm
           teacher={editingTeacher}

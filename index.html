@@ -14,6 +14,97 @@
   }
 }
 </script>
+<style>
+  /* Base styles are handled by Tailwind */
+
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    body, html, #root {
+      background: white !important;
+      -webkit-print-color-adjust: exact; /* for chrome */
+      color-adjust: exact; /* standard */
+    }
+    .shadow-md, .shadow-lg, .shadow-2xl {
+      box-shadow: none !important;
+    }
+    
+    /* Reset layout for printing */
+    #root, .h-screen, body > div.flex { /* target the main flex container */
+      height: auto !important;
+      display: block !important;
+    }
+    main {
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: visible !important;
+      height: auto !important;
+      width: 100% !important;
+      flex: none !important;
+      position: static !important;
+    }
+
+    .overflow-x-auto {
+        overflow-x: visible !important;
+    }
+    
+    /* Timetable specific print styles */
+    .timetable-grid {
+        display: grid !important;
+        /* Use a variable for column count, with a fallback */
+        grid-template-columns: 50px repeat(var(--time-slot-count, 24), 1fr) !important;
+        font-size: 8px !important;
+    }
+    .timetable-grid div {
+        border-color: #ccc !important;
+    }
+    .timetable-grid .timetable-grid-header {
+        font-size: 7px !important;
+        padding: 2px 1px !important;
+        font-weight: normal !important;
+        background-color: white !important;
+        color: black !important;
+    }
+    .timetable-grid .timetable-grid-day-label {
+        font-size: 8px !important;
+        padding: 4px 2px !important;
+        background-color: #f3f4f6 !important;
+        color: black !important;
+    }
+    .timetable-grid .break-slot {
+      background-color: #f3f4f6 !important;
+    }
+    .timetable-grid .timetable-grid-event {
+        margin: 1px !important;
+        padding: 2px !important;
+        border: 1px solid #666 !important;
+        background-color: white !important;
+        color: black !important;
+        font-size: 7px !important;
+        line-height: 1.2 !important;
+        border-radius: 2px !important;
+    }
+    .timetable-grid .timetable-grid-event > strong, 
+    .timetable-grid .timetable-grid-event > span {
+        color: black !important;
+        opacity: 1 !important;
+        font-weight: normal !important;
+    }
+    .timetable-grid .timetable-grid-event > strong.font-semibold,
+    .timetable-grid .timetable-grid-event > strong.font-medium {
+        font-weight: bold !important;
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+</style>
 </head>
   <body class="bg-gray-100">
     <div id="root"></div>

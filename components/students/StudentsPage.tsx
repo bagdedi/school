@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
-import type { Student } from '../../types';
+import React, { useState, useMemo } from 'react';
+import type { Student, Classe, SharedFilterState } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { PencilIcon } from '../icons/PencilIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import { Modal } from '../common/Modal';
 import { StudentForm } from './StudentForm';
 
-const mockStudents: Student[] = [
-  { id: 'S001', name: 'Olivia Chen', grade: 11, email: 'olivia.c@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-  { id: 'S002', name: 'Benjamin Carter', grade: 12, email: 'ben.c@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026705d' },
-  { id: 'S003', name: 'Sophia Rodriguez', grade: 10, email: 'sophia.r@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d' },
-  { id: 'S004', name: 'Liam Goldberg', grade: 11, email: 'liam.g@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026707d' },
-  { id: 'S005', name: 'Ava Nguyen', grade: 9, email: 'ava.n@northwood.edu', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026708d' },
-];
+interface StudentsPageProps {
+  optionalSubjects: string[];
+  classes: Classe[];
+  students: Student[];
+  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
+  filters: SharedFilterState;
+  onFilterChange: (filterName: keyof SharedFilterState, value: string) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  onResetFilters: () => void;
+}
 
-const StudentsPage: React.FC = () => {
-  const [students, setStudents] = useState<Student[]>(mockStudents);
+const StudentsPage: React.FC<StudentsPageProps> = ({ 
+  optionalSubjects, 
+  classes, 
+  students, 
+  setStudents,
+  filters,
+  onFilterChange,
+  searchQuery,
+  setSearchQuery,
+  onResetFilters,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
@@ -30,12 +43,12 @@ const StudentsPage: React.FC = () => {
   };
 
   const handleDeleteStudent = (studentId: string) => {
-    if (window.confirm('Are you sure you want to delete this student?')) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet étudiant ?')) {
       setStudents(students.filter((student) => student.id !== studentId));
     }
   };
   
-  const handleSaveStudent = (studentData: Omit<Student, 'id' | 'avatar'> & { id?: string }) => {
+  const handleSaveStudent = (studentData: Omit<Student, 'id' | 'avatar' | 'photoUrl' | 'matricule'>) => {
     if (editingStudent) {
       // Update existing student
       setStudents(
@@ -47,6 +60,7 @@ const StudentsPage: React.FC = () => {
       // Add new student
       const newStudent: Student = {
         id: `S${String(students.length + 1).padStart(3, '0')}`,
+        matricule: `S2024${String(students.length + 1).padStart(3, '0')}`,
         ...studentData,
         avatar: `https://i.pravatar.cc/150?u=${Math.random()}`,
       };
@@ -56,60 +70,137 @@ const StudentsPage: React.FC = () => {
     setEditingStudent(null);
   };
 
+  const uniqueNiveaux = useMemo(() => [...new Set(classes.map(c => c.niveau))].sort(), [classes]);
+  
+  const availableSpecialites = useMemo(() => {
+    if (!filters.niveau) {
+      return [...new Set(classes.map(c => c.specialite))].sort();
+    }
+    return [...new Set(classes.filter(c => c.niveau === filters.niveau).map(c => c.specialite))].sort();
+  }, [filters.niveau, classes]);
+
+  const availableClasses = useMemo(() => {
+    if (!filters.niveau || !filters.specialite) {
+      return [];
+    }
+    return classes
+      .filter(c => c.niveau === filters.niveau && c.specialite === filters.specialite)
+      .map(c => c.name)
+      .sort();
+  }, [filters.niveau, filters.specialite, classes]);
+
+
+  const filteredStudents = students.filter(student => {
+    const searchMatch =
+      `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.matricule.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const niveauMatch = filters.niveau ? student.academicLevel === filters.niveau : true;
+    const specialiteMatch = filters.specialite ? student.academicSpecialty === filters.specialite : true;
+    const classeMatch = filters.classe ? student.classe === filters.classe : true;
+
+    return searchMatch && niveauMatch && specialiteMatch && classeMatch;
+  });
+
 
   return (
     <>
       <div className="bg-white p-8 rounded-xl shadow-md">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Students</h1>
-            <p className="mt-1 text-gray-600">Manage your student records here.</p>
+            <h1 className="text-3xl font-bold text-gray-800">Gestion des Étudiants</h1>
+            <p className="mt-1 text-gray-600">Gérez les dossiers de vos étudiants ici.</p>
           </div>
           <button
             onClick={handleAddStudent}
             className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <PlusIcon />
-            <span className="ml-2">Add Student</span>
+            <span className="ml-2">Ajouter un étudiant</span>
           </button>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <input
+            type="search"
+            placeholder="Rechercher par nom ou matricule..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 md:col-span-2 lg:col-span-1"
+          />
+          <select
+            value={filters.niveau}
+            onChange={(e) => onFilterChange('niveau', e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">Tous les Niveaux</option>
+            {uniqueNiveaux.map(level => (
+              <option key={level} value={level}>{level}</option>
+            ))}
+          </select>
+          <select
+            value={filters.specialite}
+            onChange={(e) => onFilterChange('specialite', e.target.value)}
+            disabled={!filters.niveau}
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
+          >
+            <option value="">Toutes les Spécialités</option>
+            {availableSpecialites.map(spec => (
+              <option key={spec} value={spec}>{spec}</option>
+            ))}
+          </select>
+          <select
+            value={filters.classe}
+            onChange={(e) => onFilterChange('classe', e.target.value)}
+            disabled={!filters.niveau || !filters.specialite}
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
+          >
+            <option value="">Toutes les Classes</option>
+            {availableClasses.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-100 text-gray-600 uppercase text-sm">
-                <th className="py-3 px-4 font-semibold">Name</th>
-                <th className="py-3 px-4 font-semibold">Student ID</th>
-                <th className="py-3 px-4 font-semibold">Grade</th>
-                <th className="py-3 px-4 font-semibold">Email</th>
+                <th className="py-3 px-4 font-semibold">Nom</th>
+                <th className="py-3 px-4 font-semibold">Matricule</th>
+                <th className="py-3 px-4 font-semibold">Niveau</th>
+                <th className="py-3 px-4 font-semibold">Spécialité</th>
+                <th className="py-3 px-4 font-semibold">Classe</th>
                 <th className="py-3 px-4 font-semibold text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="text-gray-700">
-              {students.map((student) => (
+              {filteredStudents.map((student) => (
                 <tr key={student.id} className="border-b border-gray-200 hover:bg-gray-50">
                   <td className="py-3 px-4">
                     <div className="flex items-center">
-                      <img src={student.avatar} alt={student.name} className="w-10 h-10 rounded-full mr-4" />
-                      <span>{student.name}</span>
+                      <img src={student.avatar} alt={`${student.firstName} ${student.lastName}`} className="w-10 h-10 rounded-full mr-4" />
+                      <span>{`${student.firstName} ${student.lastName}`}</span>
                     </div>
                   </td>
-                  <td className="py-3 px-4">{student.id}</td>
-                  <td className="py-3 px-4">{student.grade}</td>
-                  <td className="py-3 px-4">{student.email}</td>
+                  <td className="py-3 px-4">{student.matricule}</td>
+                  <td className="py-3 px-4">{student.academicLevel}</td>
+                  <td className="py-3 px-4">{student.academicSpecialty}</td>
+                  <td className="py-3 px-4">{student.classe || '-'}</td>
                   <td className="py-3 px-4">
                     <div className="flex justify-center items-center space-x-2">
                       <button
                         onClick={() => handleEditStudent(student)}
                         className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-200 transition-colors"
-                        aria-label={`Edit ${student.name}`}
+                        aria-label={`Modifier ${student.firstName} ${student.lastName}`}
                       >
                         <PencilIcon />
                       </button>
                       <button
                         onClick={() => handleDeleteStudent(student.id)}
                         className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-gray-200 transition-colors"
-                        aria-label={`Delete ${student.name}`}
+                        aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
                       >
                         <TrashIcon />
                       </button>
@@ -124,12 +215,15 @@ const StudentsPage: React.FC = () => {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
-        title={editingStudent ? 'Edit Student' : 'Add New Student'}
+        title={editingStudent ? 'Modifier Étudiant' : 'Ajouter un nouvel étudiant'}
+        size="4xl"
       >
         <StudentForm
           student={editingStudent}
           onSave={handleSaveStudent}
           onCancel={() => setIsModalOpen(false)}
+          optionalSubjects={optionalSubjects}
+          classes={classes}
         />
       </Modal>
     </>

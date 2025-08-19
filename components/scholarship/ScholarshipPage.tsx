@@ -35,7 +35,7 @@ const ScholarshipPage: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Scholarships</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Scholarship Management</h1>
           <p className="mt-1 text-gray-600">View and manage scholarship information.</p>
         </div>
          <button className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
