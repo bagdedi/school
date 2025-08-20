@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { FilterIcon } from '../icons/FilterIcon';
 import { ResetIcon } from '../icons/ResetIcon';
 import type { Student, SharedFilterState } from '../../types';
@@ -10,11 +10,52 @@ const niveauOptions = ['1 annee', '2 annee', '3 annee', '4 annee'];
 
 // --- DYNAMIC DATA COMPONENTS ---
 
-interface OptionStat {
-  name: string;
-  count: number;
-  color: string;
+const COLORS = ['#f97316', '#f59e0b', '#10b981', '#8b5cf6', '#3b82f6', '#ec4899'];
+
+interface PieChartProps {
+  data: { name: string; value: number }[];
 }
+
+const PieChart: React.FC<PieChartProps> = ({ data }) => {
+  if (!data || data.length === 0) {
+    return <div className="text-center text-blue-200 py-4 text-sm">Pas de données d'option.</div>;
+  }
+  
+  const total = data.reduce((acc, item) => acc + item.value, 0);
+  if (total === 0) {
+    return <div className="text-center text-blue-200 py-4 text-sm">Pas de données d'option.</div>;
+  }
+
+  let cumulativePercent = 0;
+  const gradients = data.map((item, index) => {
+    const percent = (item.value / total) * 100;
+    const start = cumulativePercent;
+    cumulativePercent += percent;
+    const end = cumulativePercent;
+    return `${COLORS[index % COLORS.length]} ${start}% ${end}%`;
+  });
+
+  return (
+    <div className="flex flex-col items-center text-white">
+      <div 
+        className="w-28 h-28 rounded-full"
+        style={{ background: `conic-gradient(${gradients.join(', ')})` }}
+        role="img"
+        aria-label="Répartition des options"
+      ></div>
+      <div className="mt-3 w-full">
+        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
+          {data.map((item, index) => (
+            <li key={item.name} className="flex items-center">
+              <span className="w-2.5 h-2.5 mr-1.5" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+              <span>{item.name}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
 
 interface ClasseStat {
   id: string;
@@ -22,30 +63,9 @@ interface ClasseStat {
   totalStudents: number;
   males: number;
   females: number;
-  options: OptionStat[];
+  optionsDistribution: { name: string; value: number }[];
 }
 
-
-const PieChart: React.FC<{ data: OptionStat[] }> = ({ data }) => {
-  const total = data.reduce((acc, item) => acc + item.count, 0);
-  if (total === 0) return <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">N/A</div>;
-
-  let cumulativePercentage = 0;
-  const gradients = data.map(item => {
-    const percentage = (item.count / total) * 100;
-    const start = cumulativePercentage;
-    cumulativePercentage += percentage;
-    const end = cumulativePercentage;
-    return `${item.color} ${start}% ${end}%`;
-  });
-
-  return (
-    <div
-      className="w-24 h-24 rounded-full"
-      style={{ background: `conic-gradient(${gradients.join(', ')})` }}
-    />
-  );
-};
 
 interface ClasseCardProps {
   data: ClasseStat;
@@ -58,24 +78,17 @@ const ClasseCard: React.FC<ClasseCardProps> = ({ data, onShowDetails }) => {
       <div className="bg-gray-200 text-gray-800 p-3 font-bold text-center">
         Classe: {data.name}
       </div>
-      <div className="p-4 space-y-3 flex-grow">
+      <div className="p-4 space-y-2 flex-grow">
         <p>Nombre des etudiants: {data.totalStudents}</p>
         <p>Males: {data.males}</p>
         <p>Femelles: {data.females}</p>
-        <div className="pt-4 text-center">
-          <h3 className="font-semibold mb-3">Option</h3>
-          <div className="flex justify-center items-center space-x-6">
-            <PieChart data={data.options} />
-            <ul className="text-left text-sm space-y-1">
-              {data.options.map(opt => (
-                <li key={opt.name} className="flex items-center">
-                  <span className="w-3 h-3 rounded-sm mr-2" style={{ backgroundColor: opt.color }}></span>
-                  <span className="capitalize">{opt.name}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        
+        {data.optionsDistribution.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-blue-400">
+                <h4 className="text-center font-semibold mb-2 text-sm">option</h4>
+                <PieChart data={data.optionsDistribution} />
+            </div>
+        )}
       </div>
       <div className="p-4 mt-auto">
         <button 
@@ -111,28 +124,22 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
   const [isFiltered, setIsFiltered] = useState(false);
   const [selectedClassDetails, setSelectedClassDetails] = useState<ClasseStat | null>(null);
 
-  const optionColors = useMemo(() => {
-      const COLORS = ['#facc15', '#f97316', '#84cc16', '#78350f', '#3b82f6', '#8b5cf6'];
-      return optionalSubjects.reduce((acc, subject, index) => {
-          acc[subject.toLowerCase()] = COLORS[index % COLORS.length];
-          return acc;
-      }, {} as Record<string, string>);
-  }, [optionalSubjects]);
-
-  const classeStats = useMemo((): ClasseStat[] => {
-    if (!isFiltered) {
-        return [];
-    }
-
-    const filteredStudents = students.filter(student => {
+  const filteredStudentsForStats = useMemo(() => {
+    if (!isFiltered) return [];
+    
+    return students.filter(student => {
+        const anneeMatch = anneeScolaire ? student.schoolYear === anneeScolaire : true;
         const niveauMatch = filters.niveau ? student.academicLevel === filters.niveau : true;
         const specialiteMatch = filters.specialite ? student.academicSpecialty === filters.specialite : true;
         const optionMatch = filters.option ? student.option === filters.option : true;
-        // Assuming the `students` prop is already for the correct school year.
-        return niveauMatch && specialiteMatch && optionMatch;
+        return anneeMatch && niveauMatch && specialiteMatch && optionMatch;
     });
+  }, [isFiltered, students, filters, anneeScolaire]);
 
-    const studentsByClass = filteredStudents.reduce((acc, student) => {
+  const classeStats = useMemo((): ClasseStat[] => {
+    if (filteredStudentsForStats.length === 0) return [];
+    
+    const studentsByClass = filteredStudentsForStats.reduce((acc, student) => {
         const classeName = student.classe || 'Non assigné';
         if (!acc[classeName]) {
             acc[classeName] = [];
@@ -143,30 +150,29 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
     
 
     return Object.entries(studentsByClass).map(([className, classStudents], index) => {
-        
-        const optionsCount = classStudents.reduce((acc, student) => {
-            if (student.option) {
-                acc[student.option] = (acc[student.option] || 0) + 1;
-            }
-            return acc;
-        }, {} as Record<string, number>);
+        const optionsStatsForClass = classStudents
+            .filter(s => s.option)
+            .reduce((acc, student) => {
+                const option = student.option!;
+                acc[option] = (acc[option] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
 
-        const classOptions: OptionStat[] = Object.entries(optionsCount).map(([optionName, count]) => ({
-            name: optionName,
-            count: count,
-            color: optionColors[optionName.toLowerCase()] || '#6b7280',
-        }));
-
+        const optionsDistribution = Object.entries(optionsStatsForClass)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a,b) => b.value - a.value);
+            
         return {
             id: `class-stat-${className}-${index}`,
             name: className,
             totalStudents: classStudents.length,
             males: classStudents.filter(s => s.gender === 'Male').length,
             females: classStudents.filter(s => s.gender === 'Female').length,
-            options: classOptions,
+            optionsDistribution,
         };
-    });
-  }, [isFiltered, students, filters, optionalSubjects, optionColors]);
+    }).sort((a,b) => a.name.localeCompare(b.name));
+  }, [filteredStudentsForStats]);
+
 
   const availableSpecialites = useMemo(() => {
     switch (filters.niveau) {
@@ -291,11 +297,11 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
           <div className="animate-fade-in">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Résultats de l'état pédagogique</h2>
             {classeStats.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {classeStats.map(classe => (
                     <ClasseCard key={classe.id} data={classe} onShowDetails={setSelectedClassDetails} />
                   ))}
-              </div>
+                </div>
             ) : (
               <div className="bg-gray-50 text-center py-10 rounded-lg border">
                   <p className="text-gray-600 font-semibold">Aucun résultat trouvé</p>
@@ -316,8 +322,6 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
           <ClassDetailsTable
             classNameToShow={selectedClassDetails.name}
             students={students}
-            optionalSubjects={optionalSubjects}
-            optionColors={optionColors}
           />
         </Modal>
       )}

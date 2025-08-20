@@ -42,6 +42,9 @@ const mockStudents: Student[] = [
     parentPhone: '216-22-333-444',
     parentEmail: 'ben.ali.parent@email.com',
     classe: '3 SC.EXP. 1',
+    schoolYear: '2025/2026',
+    idNumber: '12345678',
+    academicDiploma: 'Baccalauréat',
   },
   { 
     id: 'S002', 
@@ -59,6 +62,9 @@ const mockStudents: Student[] = [
     parentPhone: '216-98-765-432',
     parentEmail: 'k.mansouri.parent@email.com',
     classe: '1 AS 2',
+    schoolYear: '2025/2026',
+    idNumber: '87654321',
+    academicDiploma: 'N/A',
   },
   { 
     id: 'S003', 
@@ -76,6 +82,9 @@ const mockStudents: Student[] = [
     parentPhone: '216-55-111-222',
     parentEmail: '',
     classe: '2 ECO-GES. 1',
+    schoolYear: '2025/2026',
+    idNumber: '11223344',
+    academicDiploma: 'N/A',
   },
 ];
 
@@ -109,8 +118,8 @@ const App: React.FC = () => {
   const [sharedFilters, setSharedFilters] = useState<SharedFilterState>({
     niveau: '',
     specialite: '',
-    classe: '',
     option: '',
+    classe: '',
   });
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -129,7 +138,7 @@ const App: React.FC = () => {
   };
 
   const resetSharedFilters = () => {
-      setSharedFilters({ niveau: '', specialite: '', classe: '', option: '' });
+      setSharedFilters({ niveau: '', specialite: '', option: '', classe: '' });
       setSearchQuery('');
   };
 
@@ -199,7 +208,15 @@ const App: React.FC = () => {
           onResetFilters={resetSharedFilters}
         />;
       case 'Students > Attestation':
-        return <AttestationPage />;
+        return <AttestationPage 
+          students={students}
+          classes={classes}
+          filters={sharedFilters}
+          onFilterChange={handleFilterChange}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onResetFilters={resetSharedFilters}
+        />;
       case 'Teachers':
         return <TeachersPage />;
       case 'Emplois de temps > Teachers':

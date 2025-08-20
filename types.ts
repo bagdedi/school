@@ -112,6 +112,6 @@ export interface Classe {
 export interface SharedFilterState {
   niveau: string;
   specialite: string;
-  classe: string;
   option: string;
+  classe: string;
 }
