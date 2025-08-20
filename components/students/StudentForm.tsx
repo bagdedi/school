@@ -49,26 +49,16 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
   }, [student]);
 
   const availableSpecialites = useMemo(() => {
-    switch (formData.academicLevel) { // 'niveau' is academicLevel
-      case '1 annee':
-        return ['Tronc commun', 'Sport'];
-      case '2 annee':
-        return ['Sciences', 'Technologie', 'Lettres', 'Sport', 'Economie et Gestion'];
-      case '3 annee':
-      case '4 annee':
-        return [
-          'Mathématiques',
-          'Sciences Expérimentales',
-          'Techniques',
-          'Sport',
-          'Lettres',
-          'Economie et Gestion',
-          'Sciences Informatiques',
-        ];
-      default:
-        return [];
+    if (!formData.academicLevel) {
+      return [];
     }
-  }, [formData.academicLevel]);
+    // Filter classes by the selected niveau
+    const relevantClasses = classes.filter(c => c.niveau === formData.academicLevel);
+    // Get unique specialites from these classes
+    const uniqueSpecialites = [...new Set(relevantClasses.map(c => c.specialite))];
+    // Sort them alphabetically
+    return uniqueSpecialites.sort();
+  }, [formData.academicLevel, classes]);
 
   const availableClasses = useMemo(() => {
     if (!formData.academicLevel || !formData.academicSpecialty) {

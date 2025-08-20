@@ -79,6 +79,16 @@ export interface Scholarship {
   status: 'Active' | 'Inactive';
 }
 
+export interface SubjectCoefficient {
+  id: string;
+  subject: string;
+  level: string;
+  specialization: string;
+  hours: string;
+  coefficient: string;
+}
+
+
 export interface TimetableEvent {
   id: string;
   day: number; // 1 for Monday, 2 for Tuesday, etc.

@@ -7,6 +7,7 @@ import { CameraIcon } from '../icons/CameraIcon';
 import { ClockIcon } from '../icons/ClockIcon';
 import { LibraryIcon } from '../icons/LibraryIcon';
 import { AcademicCapIcon } from '../icons/AcademicCapIcon';
+import { specializationsByLevel } from '../scholarship/programData';
 
 interface EtablissementPageProps {
   schoolName: string;
@@ -19,6 +20,8 @@ interface EtablissementPageProps {
   setOptionalSubjects: (subjects: string[]) => void;
   classes: Classe[];
   setClasses: (classes: Classe[]) => void;
+  halls: string[];
+  setHalls: (halls: string[]) => void;
 }
 
 const niveauOptions = ['1 annee', '2 annee', '3 annee', '4 annee'];
@@ -26,8 +29,10 @@ const niveauOptions = ['1 annee', '2 annee', '3 annee', '4 annee'];
 const getSpecialiteAbbr = (specialite: string): string => {
   const abbreviations: { [key: string]: string } = {
     'Tronc commun': 'AS',
+    'Tronc Commun': 'AS',
     'Sport': 'SPORT',
     'Sciences': 'SC.',
+    'Économie et Services': 'ECO-SERV.',
     'Economie et Gestion': 'ECO-GES.',
     'Lettres': 'LETT.',
     'Sciences Expérimentales': 'SC.EXP.',
@@ -35,17 +40,18 @@ const getSpecialiteAbbr = (specialite: string): string => {
     'Techniques': 'TECH.',
     'Technologie': 'TECH.',
     'Sciences Informatiques': 'INFO.',
+    'Sciences de l\'Informatique': 'INFO.',
+    'Technologie de l\'Informatique': 'INFO-TECH'
   };
   return abbreviations[specialite] || specialite.substring(0, 4).toUpperCase();
 };
 
 
 const EtablissementPage: React.FC<EtablissementPageProps> = ({
-    schoolName, setSchoolName, schoolLogo, setSchoolLogo, workingHours, setWorkingHours, optionalSubjects, setOptionalSubjects, classes, setClasses
+    schoolName, setSchoolName, schoolLogo, setSchoolLogo, workingHours, setWorkingHours, optionalSubjects, setOptionalSubjects, classes, setClasses, halls, setHalls
 }) => {
     const [directorName, setDirectorName] = useState('Dr. Helmi Ahmed EL KAMEL');
-    const [hallTypes, setHallTypes] = useState(['Salle', 'Labo', 'Mixte']);
-    const [newHallType, setNewHallType] = useState('');
+    const [newHall, setNewHall] = useState('');
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
     const [newClassNiveau, setNewClassNiveau] = useState('');
@@ -57,25 +63,7 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
     }, [newClassNiveau]);
 
     const availableSpecialitesForClassCreation = useMemo(() => {
-        switch (newClassNiveau) {
-          case '1 annee':
-            return ['Tronc commun', 'Sport'];
-          case '2 annee':
-            return ['Sciences', 'Technologie', 'Lettres', 'Sport', 'Economie et Gestion'];
-          case '3 annee':
-          case '4 annee':
-            return [
-              'Mathématiques',
-              'Sciences Expérimentales',
-              'Techniques',
-              'Sport',
-              'Lettres',
-              'Economie et Gestion',
-              'Sciences Informatiques'
-            ];
-          default:
-            return [];
-        }
+        return specializationsByLevel[newClassNiveau] || [];
     }, [newClassNiveau]);
 
     const handleCreateClass = (e: React.FormEvent) => {
@@ -127,14 +115,14 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
 
     const handleAddHall = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newHallType && !hallTypes.includes(newHallType.trim())) {
-            setHallTypes([...hallTypes, newHallType.trim()]);
-            setNewHallType('');
+        if (newHall && !halls.includes(newHall.trim())) {
+            setHalls([...halls, newHall.trim()].sort((a,b) => a.localeCompare(b, undefined, { numeric: true })));
+            setNewHall('');
         }
     };
 
     const handleDeleteHall = (hallToDelete: string) => {
-        setHallTypes(hallTypes.filter(hall => hall !== hallToDelete));
+        setHalls(halls.filter(hall => hall !== hallToDelete));
     };
     
     const handleAddOptionalSubject = (e: React.FormEvent) => {
@@ -290,14 +278,14 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
           
           <form onSubmit={handleAddHall} className="flex items-end space-x-3 mb-6">
             <div className="flex-grow">
-              <label htmlFor="newHallType" className="block text-sm font-medium text-gray-700">Nouveau type de salle</label>
+              <label htmlFor="newHall" className="block text-sm font-medium text-gray-700">Nouvelle salle</label>
               <input 
                 type="text" 
-                id="newHallType" 
-                value={newHallType} 
-                onChange={(e) => setNewHallType(e.target.value)} 
+                id="newHall" 
+                value={newHall} 
+                onChange={(e) => setNewHall(e.target.value)} 
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Ex: Amphi, Salle de réunion..."
+                placeholder="Ex: Salle 1, Labo PH 2..."
               />
             </div>
             <button type="submit" className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors h-10">
@@ -307,10 +295,10 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
           </form>
 
           <div>
-            <h3 className="text-md font-semibold text-gray-700 mb-3">Types de salles existants</h3>
-            {hallTypes.length > 0 ? (
-                <ul className="space-y-2">
-                {hallTypes.map(hall => (
+            <h3 className="text-md font-semibold text-gray-700 mb-3">Salles existantes</h3>
+            {halls.length > 0 ? (
+                <ul className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                {halls.map(hall => (
                     <li key={hall} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
                     <span className="font-medium text-gray-800">{hall}</span>
                     <button 
@@ -324,7 +312,7 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
                 ))}
                 </ul>
             ) : (
-                <p className="text-center text-gray-500 py-4">Aucun type de salle défini.</p>
+                <p className="text-center text-gray-500 py-4">Aucune salle définie.</p>
             )}
           </div>
         </div>

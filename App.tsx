@@ -25,85 +25,131 @@ import EtablissementPage from './components/settings/EtablissementPage';
 import { BuildingOfficeIcon } from './components/icons/BuildingOfficeIcon';
 import EtatPedagogiquePage from './components/scholarship/EtatPedagogiquePage';
 
-const mockStudents: Student[] = [
-  { 
-    id: 'S001', 
-    matricule: 'S2024001',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
-    firstName: 'Amira', 
-    lastName: 'Ben Ali', 
-    gender: 'Female',
-    dateOfBirth: '2005-08-12',
-    placeOfBirth: 'Tunis',
-    address: '15 Rue de la Liberté, Tunis',
-    academicLevel: '3 annee',
-    academicSpecialty: 'Sciences Expérimentales',
-    option: 'Musique',
-    parentPhone: '216-22-333-444',
-    parentEmail: 'ben.ali.parent@email.com',
-    classe: '3 SC.EXP. 1',
-    schoolYear: '2025/2026',
-    idNumber: '12345678',
-    academicDiploma: 'Baccalauréat',
-  },
-  { 
-    id: 'S002', 
-    matricule: 'S2024002',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026705d',
-    firstName: 'Karim', 
-    lastName: 'Mansouri', 
-    gender: 'Male',
-    dateOfBirth: '2007-02-25',
-    placeOfBirth: 'Sfax',
-    address: '8 Avenue Hedi Chaker, Sfax',
-    academicLevel: '1 annee',
-    academicSpecialty: 'Tronc commun',
-    option: '',
-    parentPhone: '216-98-765-432',
-    parentEmail: 'k.mansouri.parent@email.com',
-    classe: '1 AS 2',
-    schoolYear: '2025/2026',
-    idNumber: '87654321',
-    academicDiploma: 'N/A',
-  },
-  { 
-    id: 'S003', 
-    matricule: 'S2024003',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026706d',
-    firstName: 'Fatma', 
-    lastName: 'Zouari', 
-    gender: 'Female',
-    dateOfBirth: '2006-11-03',
-    placeOfBirth: 'Sousse',
-    address: '123 Boulevard de l\'Environnement, Sousse',
-    academicLevel: '2 annee',
-    academicSpecialty: 'Economie et Gestion',
-    option: '',
-    parentPhone: '216-55-111-222',
-    parentEmail: '',
-    classe: '2 ECO-GES. 1',
-    schoolYear: '2025/2026',
-    idNumber: '11223344',
-    academicDiploma: 'N/A',
-  },
-];
+// --- Data Generation Helpers ---
+const studentFirstNamesMale = ['Karim', 'Ali', 'Mohamed', 'Ahmed', 'Youssef', 'Omar', 'Sami', 'Walid', 'Khaled', 'Anis', 'Hedi', 'Nizar', 'Fares', 'Rami', 'Zied'];
+const studentFirstNamesFemale = ['Amira', 'Fatma', 'Salma', 'Mariem', 'Nour', 'Yasmine', 'Ines', 'Sarah', 'Leila', 'Rim', 'Hedia', 'Sonia', 'Faten', 'Amel', 'Cyrine'];
+const studentLastNames = ['Ben Ali', 'Mansouri', 'Zouari', 'Trabelsi', 'Guesmi', 'Jlassi', 'Dridi', 'Amri', 'Chebbi', 'Saidi', 'Khemiri', 'Mejri', 'Hamdi', 'Toumi', 'Abbasi'];
+const places = ['Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte', 'Gabès', 'Nabeul', 'Monastir', 'Ariana', 'Ben Arous', 'Manouba'];
+const optionalSubjectsList = ['Musique', 'espagnole', 'allemand', 'Dessin'];
+
+const getSpecialiteAbbr = (specialite: string): string => {
+  const abbreviations: { [key: string]: string } = {
+    'Tronc commun': 'AS', 'Tronc Commun': 'AS', 'Sport': 'SPORT', 'Sciences': 'SC', 'Économie et Services': 'ECO-SERV',
+    'Economie et Gestion': 'ECO-GES', 'Lettres': 'LETT', 'Sciences Expérimentales': 'SC.EXP', 'Mathématiques': 'MATH',
+    'Techniques': 'TECH', 'Technologie': 'TECH', 'Sciences Informatiques': 'INFO', "Sciences de l'Informatique": 'INFO',
+    "Technologie de l'Informatique": 'INFO-TECH'
+  };
+  return abbreviations[specialite] || specialite.substring(0, 4).toUpperCase();
+};
+
+const specializationsByLevel: { [key: string]: string[] } = {
+  '1 annee': ['Tronc Commun'],
+  '2 annee': ['Lettres', 'Économie et Services', 'Technologie de l\'Informatique', 'Sciences'],
+  '3 annee': ['Lettres', 'Économie et Gestion', 'Sciences de l\'Informatique', 'Sciences Techniques', 'Sciences Expérimentales', 'Mathématiques', 'Sport'],
+  '4 annee': ['Lettres', 'Économie et Gestion', 'Sciences de l\'Informatique', 'Sciences Techniques', 'Sciences Expérimentales', 'Mathématiques', 'Sport'],
+};
+const levels = ['1 annee', '2 annee', '3 annee', '4 annee'];
+
+const generateClasses = (): Classe[] => {
+    const classes: Classe[] = [];
+    let classIdCounter = 1;
+    levels.forEach(niveau => {
+        const specialites = specializationsByLevel[niveau];
+        specialites.forEach(specialite => {
+            for (let i = 1; i <= 3; i++) {
+                const niveauPrefix = niveau.split(' ')[0];
+                const specialiteAbbr = getSpecialiteAbbr(specialite);
+                const className = `${niveauPrefix} ${specialiteAbbr} ${i}`;
+                classes.push({
+                    id: `c${classIdCounter++}`,
+                    niveau: niveau,
+                    specialite: specialite,
+                    number: i,
+                    name: className,
+                });
+            }
+        });
+    });
+    return classes.sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+};
+
+const initialClasses: Classe[] = generateClasses();
+
+const getBirthYearForLevel = (level: string): number => {
+    const currentYear = new Date().getFullYear();
+    switch (level) {
+        case '1 annee': return currentYear - 15;
+        case '2 annee': return currentYear - 16;
+        case '3 annee': return currentYear - 17;
+        case '4 annee': return currentYear - 18;
+        default: return currentYear - 16;
+    }
+};
+
+const generateStudents = (classes: Classe[]): Student[] => {
+    const students: Student[] = [];
+    let studentIdCounter = 1;
+
+    classes.forEach(c => {
+        for (let i = 0; i < 20; i++) {
+            const gender = Math.random() > 0.5 ? 'Male' : 'Female';
+            const firstName = gender === 'Male'
+                ? studentFirstNamesMale[Math.floor(Math.random() * studentFirstNamesMale.length)]
+                : studentFirstNamesFemale[Math.floor(Math.random() * studentFirstNamesFemale.length)];
+            const lastName = studentLastNames[Math.floor(Math.random() * studentLastNames.length)];
+            const id = `S${String(studentIdCounter).padStart(4, '0')}`;
+            const birthYear = getBirthYearForLevel(c.niveau) + (Math.random() > 0.5 ? 0 : -1);
+            
+            students.push({
+                id: id,
+                matricule: `S2024${String(studentIdCounter).padStart(4, '0')}`,
+                avatar: `https://i.pravatar.cc/150?u=${id}`,
+                firstName: firstName,
+                lastName: lastName,
+                gender: gender,
+                dateOfBirth: `${birthYear}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+                placeOfBirth: places[Math.floor(Math.random() * places.length)],
+                address: `${Math.floor(Math.random() * 100) + 1} Avenue Habib Bourguiba, ${places[Math.floor(Math.random() * places.length)]}`,
+                academicLevel: c.niveau,
+                academicSpecialty: c.specialite,
+                option: (c.niveau === '3 annee' || c.niveau === '4 annee') && Math.random() > 0.6 
+                    ? optionalSubjectsList[Math.floor(Math.random() * optionalSubjectsList.length)]
+                    : '',
+                parentPhone: `216-${String(Math.floor(Math.random() * 80) + 20)}-${String(Math.floor(Math.random() * 900) + 100)}-${String(Math.floor(Math.random() * 900) + 100).slice(0,3)}`,
+                parentEmail: `${lastName.toLowerCase().replace(' ','')}.${firstName.charAt(0).toLowerCase()}.parent@email.com`,
+                classe: c.name,
+                schoolYear: '2025/2026',
+                idNumber: `1${Array(7).fill(0).map(() => Math.floor(Math.random() * 10)).join('')}`,
+                academicDiploma: c.niveau === '4 annee' ? 'Baccalauréat' : 'N/A',
+            });
+            studentIdCounter++;
+        }
+    });
+    return students;
+};
+
+const mockStudents: Student[] = generateStudents(initialClasses);
 
 const initialWorkingHours: DayWorkingHours[] = [
-    { day: 'Lundi', dayIndex: 1, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '13:00', afternoonEnd: '17:00' },
-    { day: 'Mardi', dayIndex: 2, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '13:00', afternoonEnd: '17:00' },
-    { day: 'Mercredi', dayIndex: 3, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '13:00', afternoonEnd: '17:00' },
-    { day: 'Jeudi', dayIndex: 4, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '13:00', afternoonEnd: '17:00' },
-    { day: 'Vendredi', dayIndex: 5, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '13:00', afternoonEnd: '17:00' },
+    { day: 'Lundi', dayIndex: 1, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
+    { day: 'Mardi', dayIndex: 2, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
+    { day: 'Mercredi', dayIndex: 3, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
+    { day: 'Jeudi', dayIndex: 4, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
+    { day: 'Vendredi', dayIndex: 5, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '', afternoonEnd: '' },
     { day: 'Samedi', dayIndex: 6, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '', afternoonEnd: '' },
 ];
 
-const initialClasses: Classe[] = [
-    { id: 'c1', niveau: '1 annee', specialite: 'Tronc commun', number: 1, name: '1 AS 1' },
-    { id: 'c2', niveau: '1 annee', specialite: 'Tronc commun', number: 2, name: '1 AS 2' },
-    { id: 'c3', niveau: '2 annee', specialite: 'Sciences', number: 1, name: '2 SC. 1' },
-    { id: 'c4', niveau: '2 annee', specialite: 'Economie et Gestion', number: 1, name: '2 ECO-GES. 1' },
-    { id: 'c5', niveau: '3 annee', specialite: 'Sciences Expérimentales', number: 1, name: '3 SC.EXP. 1' },
-];
+const generateHalls = (): string[] => {
+    const halls: string[] = [];
+    for (let i = 1; i <= 28; i++) halls.push(`Salle ${i}`);
+    for (let i = 1; i <= 4; i++) halls.push(`Labo PH ${i}`);
+    for (let i = 1; i <= 4; i++) halls.push(`Labo SVT ${i}`);
+    for (let i = 1; i <= 4; i++) halls.push(`Salle Informatique ${i}`);
+    for (let i = 1; i <= 4; i++) halls.push(`Salle Technologie ${i}`);
+    for (let i = 1; i <= 4; i++) halls.push(`Terrain du Sport ${i}`);
+    return halls.sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+};
+const initialHalls = generateHalls();
 
 
 const App: React.FC = () => {
@@ -114,6 +160,7 @@ const App: React.FC = () => {
   const [optionalSubjects, setOptionalSubjects] = useState<string[]>(['Musique', 'espagnole', 'allemand', 'Dessin']);
   const [classes, setClasses] = useState<Classe[]>(initialClasses);
   const [students, setStudents] = useState<Student[]>(mockStudents);
+  const [halls, setHalls] = useState<string[]>(initialHalls);
 
   const [sharedFilters, setSharedFilters] = useState<SharedFilterState>({
     niveau: '',
@@ -249,6 +296,8 @@ const App: React.FC = () => {
           setOptionalSubjects={setOptionalSubjects}
           classes={classes}
           setClasses={setClasses}
+          halls={halls}
+          setHalls={setHalls}
         />;
       case 'Settings > General':
         return <SettingsPage />;
