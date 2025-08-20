@@ -253,27 +253,40 @@ const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHo
       
       {filteredEvents.length > 0 && (
         <div id="export-container">
-            <div className="hidden print:block text-sm mb-4">
+            <div className="hidden print:block text-sm mb-6 font-serif">
                 {teacherDetails && (
                     <>
-                        <div className="flex justify-between items-center mb-2">
-                             <div>
-                                <p className="font-bold text-lg">{schoolName}</p>
-                                <p>Année Scolaire: 2025/2026</p>
+                        <div className="flex justify-between items-start text-xs">
+                            <div className="text-left">
+                                <p className="font-semibold">ministre d'education</p>
+                                <p>lycée : <span className="font-bold">{schoolName}</span></p>
+                                <p>année scolaire : <span className="font-bold">2025/2026</span></p>
                             </div>
                             <div className="text-right">
-                                <p className="font-bold text-lg">Emploi du Temps Enseignant</p>
+                                <p>horaire demandé : ........................</p>
+                                <p>horaire réel : <span className="font-bold">{teacherDetails.totalVolume}h</span></p>
+                                <p>heures supplémentaires: ........................</p>
                             </div>
                         </div>
-                        <div className="border-t border-b border-gray-400 py-1 px-2 my-2 grid grid-cols-3 gap-4">
-                            <span><span className="font-semibold">Enseignant:</span> {teacherDetails.firstName} {teacherDetails.lastName}</span>
-                            <span><span className="font-semibold">Spécialité:</span> {teacherDetails.specialty}</span>
-                            <span><span className="font-semibold">Volume Horaire Total:</span> {teacherDetails.totalVolume} h / semaine</span>
+
+                        <div className="text-center my-8">
+                            <h1 className="font-bold text-base tracking-wider uppercase">Emploi du temps pour l'enseignant :</h1>
+                            <p className="mt-2 text-sm font-semibold tracking-wider">{teacherDetails.firstName} {teacherDetails.lastName}</p>
+                            <p className="text-center text-xs tracking-widest">................................................................</p>
                         </div>
                     </>
                 )}
             </div>
             <Timetable events={filteredEvents} workingHours={workingHours} displayMode="teacher" />
+            <div className="hidden print:block mt-16 text-sm font-serif">
+                <div className="flex justify-end">
+                    <div className="text-center">
+                        <p>le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <p className="mt-4 font-semibold">le directeur :</p>
+                        <p className="mt-12">........................................</p>
+                    </div>
+                </div>
+            </div>
         </div>
       )}
 
