@@ -8,12 +8,13 @@ import { ClockIcon } from '../icons/ClockIcon';
 import { LibraryIcon } from '../icons/LibraryIcon';
 import { AcademicCapIcon } from '../icons/AcademicCapIcon';
 import { specializationsByLevel } from '../scholarship/programData';
+import { Modal } from '../common/Modal';
 
 interface EtablissementPageProps {
   schoolName: string;
   setSchoolName: (name: string) => void;
   schoolLogo: React.ReactNode;
-  setSchoolLogo: (logo: React.ReactNode) => void;
+  setSchoolLogoUrl: (url: string | null) => void;
   workingHours: DayWorkingHours[];
   setWorkingHours: (hours: DayWorkingHours[]) => void;
   optionalSubjects: string[];
@@ -48,7 +49,7 @@ const getSpecialiteAbbr = (specialite: string): string => {
 
 
 const EtablissementPage: React.FC<EtablissementPageProps> = ({
-    schoolName, setSchoolName, schoolLogo, setSchoolLogo, workingHours, setWorkingHours, optionalSubjects, setOptionalSubjects, classes, setClasses, halls, setHalls
+    schoolName, setSchoolName, schoolLogo, setSchoolLogoUrl, workingHours, setWorkingHours, optionalSubjects, setOptionalSubjects, classes, setClasses, halls, setHalls
 }) => {
     const [directorName, setDirectorName] = useState('Dr. Helmi Ahmed EL KAMEL');
     const [newHall, setNewHall] = useState('');
@@ -58,6 +59,8 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
     const [newClassSpecialite, setNewClassSpecialite] = useState('');
     const [newOptionalSubject, setNewOptionalSubject] = useState('');
     
+    const [classToDelete, setClassToDelete] = useState<Classe | null>(null);
+
     useEffect(() => {
         setNewClassSpecialite('');
     }, [newClassNiveau]);
@@ -92,10 +95,14 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
         setNewClassSpecialite('');
     };
 
-    const handleDeleteClass = (classId: string) => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette classe ? Cette action est irréversible.')) {
-            setClasses(classes.filter(c => c.id !== classId));
-        }
+    const requestDeleteClass = (classItem: Classe) => {
+        setClassToDelete(classItem);
+    };
+
+    const confirmDeleteClass = () => {
+        if (!classToDelete) return;
+        setClasses(classes.filter(c => c.id !== classToDelete.id));
+        setClassToDelete(null);
     };
     
     const groupedClasses = useMemo(() => {
@@ -144,7 +151,7 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
         reader.onloadend = () => {
           const result = reader.result as string;
           setLogoPreview(result);
-          setSchoolLogo(<img src={result} alt="School Logo" className="h-8 w-8 object-contain" />);
+          setSchoolLogoUrl(result);
         };
         reader.readAsDataURL(file);
       }
@@ -425,7 +432,7 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
                                                   <li key={c.id} className="flex items-center justify-between bg-gray-100 p-2 rounded-md border border-gray-200">
                                                       <span className="font-mono text-sm text-indigo-800 font-medium">{c.name}</span>
                                                       <button 
-                                                          onClick={() => handleDeleteClass(c.id)}
+                                                          onClick={() => requestDeleteClass(c)}
                                                           className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 transition-colors"
                                                           aria-label={`Supprimer la classe ${c.name}`}
                                                       >
@@ -450,12 +457,54 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
         </div>
 
 
-        <div className="flex justify-end">
-          <button className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition-colors">
-            Enregistrer les modifications
-          </button>
+        <div className="flex justify-end mb-8">
+            {/* The save button was here, removed because saving is now automatic */}
         </div>
       </div>
+
+      <Modal
+        isOpen={!!classToDelete}
+        onClose={() => setClassToDelete(null)}
+        title="Confirmation de Suppression"
+        size="lg"
+      >
+        {classToDelete && (
+        <div>
+            <p className="text-gray-700 text-lg">
+                Êtes-vous sûr de vouloir supprimer la classe suivante ?
+            </p>
+            <p className="text-center font-bold text-2xl text-indigo-700 my-4 bg-gray-100 p-3 rounded-md">
+                {classToDelete.name}
+            </p>
+            <div className="mt-4 bg-red-50 border-l-4 border-red-400 text-red-700 p-4 rounded-r-md">
+                <p className="font-semibold flex items-center">
+                    <InfoIcon className="h-5 w-5 mr-2" />
+                    Attention
+                </p>
+                <p className="text-sm mt-1">
+                    Cette action est irréversible. Les étudiants actuellement dans cette classe devront être réassignés.
+                </p>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                <button
+                    type="button"
+                    onClick={() => setClassToDelete(null)}
+                    className="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                    Annuler
+                </button>
+                <button
+                    type="button"
+                    onClick={confirmDeleteClass}
+                    className="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                >
+                    <TrashIcon /> <span className="ml-2">Supprimer</span>
+                </button>
+            </div>
+        </div>
+        )}
+      </Modal>
+
     </div>
   );
 };

@@ -86,6 +86,7 @@ export interface SubjectCoefficient {
   specialization: string;
   hours: string;
   coefficient: string;
+  groupHours?: string; // The portion of total hours that are done in groups.
 }
 
 

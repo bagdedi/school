@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { SubjectCoefficient } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { PencilIcon } from '../icons/PencilIcon';
@@ -14,7 +14,24 @@ import { EyeIcon } from '../icons/EyeIcon';
 import { ContinuousAssessmentDetails } from './ContinuousAssessmentDetails';
 
 const ScholarshipPage: React.FC = () => {
-  const [subjectCoefficients, setSubjectCoefficients] = useState<SubjectCoefficient[]>(mockSubjectCoefficients);
+  const [subjectCoefficients, setSubjectCoefficients] = useState<SubjectCoefficient[]>(() => {
+    try {
+      const savedData = localStorage.getItem('subjectCoefficients');
+      return savedData ? JSON.parse(savedData) : mockSubjectCoefficients;
+    } catch (error) {
+      console.warn('Error reading subjectCoefficients from localStorage', error);
+      return mockSubjectCoefficients;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('subjectCoefficients', JSON.stringify(subjectCoefficients));
+    } catch (error) {
+      console.warn('Error saving subjectCoefficients to localStorage', error);
+    }
+  }, [subjectCoefficients]);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<SubjectCoefficient | null>(null);
   const [detailsSubject, setDetailsSubject] = useState<SubjectCoefficient | null>(null);

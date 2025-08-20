@@ -13,7 +13,38 @@ const minutesToTimeStr = (minutes: number): string => {
   return `${h}:${m}`;
 };
 
-export const Timetable: React.FC<{ events: TimetableEvent[], workingHours: DayWorkingHours[] }> = ({ events, workingHours }) => {
+interface EventBodyProps {
+  event: TimetableEvent;
+  displayMode?: 'student' | 'teacher' | 'hall';
+}
+
+const EventBody: React.FC<EventBodyProps> = ({ event, displayMode }) => {
+    if (displayMode === 'teacher') {
+        return (
+            <>
+                <strong className="font-semibold truncate">{event.className}</strong>
+                <strong className="font-medium truncate">{event.hall}</strong>
+            </>
+        )
+    }
+
+    const isGroup = event.className.includes(' GR');
+    const groupName = isGroup ? event.className.split(' ').pop() : '';
+    const subjectText = isGroup ? `${event.subject} (${groupName})` : event.subject;
+    const classNameText = isGroup ? event.className.split(' GR')[0] : event.className;
+
+    return (
+        <>
+            {displayMode !== 'student' && <strong className="font-semibold truncate">{classNameText}</strong>}
+            <span className="truncate">{subjectText}</span>
+            <span className="opacity-80 truncate">{event.teacher}</span>
+            {displayMode !== 'hall' && <strong className="font-medium truncate">{event.hall}</strong>}
+        </>
+    );
+};
+
+
+export const Timetable: React.FC<{ events: TimetableEvent[], workingHours: DayWorkingHours[], displayMode?: 'student' | 'teacher' | 'hall' }> = ({ events, workingHours, displayMode = 'teacher' }) => {
   const slotDuration = 60; // 60-minute slots
 
   const activeDays = workingHours
@@ -51,7 +82,7 @@ export const Timetable: React.FC<{ events: TimetableEvent[], workingHours: DayWo
         className="grid relative timetable-grid"
         style={{
           gridTemplateColumns: `100px repeat(${timeSlots.length}, minmax(100px, 1fr))`,
-          gridTemplateRows: `auto repeat(${activeDays.length}, minmax(80px, auto))`,
+          gridTemplateRows: `auto repeat(${activeDays.length}, minmax(60px, auto))`,
           '--time-slot-count': timeSlots.length,
         } as React.CSSProperties}
       >
@@ -68,6 +99,9 @@ export const Timetable: React.FC<{ events: TimetableEvent[], workingHours: DayWo
         {/* Day Rows, Breaks, and Events */}
         {activeDays.map((day, dayIndex) => {
             const dayRow = dayIndex + 2; // CSS grid is 1-indexed, +1 for header row
+            const dayEvents = displayedEvents.filter(e => e.day === day.dayIndex);
+            const processedEventIds = new Set<string>();
+            
             return (
                 <React.Fragment key={day.dayIndex}>
                     {/* Day Label */}
@@ -105,44 +139,69 @@ export const Timetable: React.FC<{ events: TimetableEvent[], workingHours: DayWo
                     })}
 
                     {/* Events for this day */}
-                    {displayedEvents
-                        .filter(e => e.day === day.dayIndex)
-                        .map(event => {
-                            const startMinutes = timeToMinutes(event.startTime);
-                            const endMinutes = timeToMinutes(event.endTime);
+                    {dayEvents.map(event => {
+                        if (processedEventIds.has(event.id)) return null;
 
-                            const startOffset = startMinutes - gridStartMinutes;
-                            const endOffset = endMinutes - gridStartMinutes;
+                        const baseClassName = event.className.split(' GR')[0];
+                        const isGroup = event.className.includes(' GR');
+
+                        const pair = displayMode === 'student' && isGroup
+                            ? dayEvents.find(e =>
+                                e.id !== event.id &&
+                                !processedEventIds.has(e.id) &&
+                                e.className.split(' GR')[0] === baseClassName &&
+                                e.startTime === event.startTime &&
+                                e.endTime === event.endTime &&
+                                e.className !== event.className
+                            )
+                            : null;
+                        
+                        const startMinutes = timeToMinutes(event.startTime);
+                        const endMinutes = timeToMinutes(event.endTime);
+                        const startOffset = startMinutes - gridStartMinutes;
+                        const endOffset = endMinutes - gridStartMinutes;
+                        if (endMinutes <= gridStartMinutes || startMinutes >= gridEndMinutes) return null;
+                        const colStart = Math.floor(startOffset / slotDuration) + 2;
+                        const colEnd = Math.floor(endOffset / slotDuration) + 2;
+                        const clampedColStart = Math.max(2, colStart);
+                        const clampedColEnd = Math.min(timeSlots.length + 2, colEnd);
+                        if (clampedColStart >= clampedColEnd) return null;
+                        
+                        const gridPosition = {
+                            gridRow: dayRow,
+                            gridColumn: `${clampedColStart} / ${clampedColEnd}`,
+                        };
+
+                        if (pair) {
+                            processedEventIds.add(event.id);
+                            processedEventIds.add(pair.id);
+
+                            const event1 = event.className.endsWith('GR1') ? event : pair;
+                            const event2 = event.className.endsWith('GR2') ? event : pair;
                             
-                            if (endMinutes <= gridStartMinutes || startMinutes >= gridEndMinutes) {
-                                return null;
-                            }
-
-                            const colStart = Math.floor(startOffset / slotDuration) + 2;
-                            const colEnd = Math.floor(endOffset / slotDuration) + 2;
-                            
-                            const clampedColStart = Math.max(2, colStart);
-                            const clampedColEnd = Math.min(timeSlots.length + 2, colEnd);
-
-                            if (clampedColStart >= clampedColEnd) return null;
-
+                            return (
+                                <div key={event.id} style={gridPosition} className="flex flex-col m-1 rounded-md overflow-hidden z-10 p-0 shadow-sm timetable-grid-event">
+                                    <div className={`h-1/2 p-1 text-xs leading-tight flex flex-col justify-center border-b border-white/30 ${event1.color}`}>
+                                        <EventBody event={event1} displayMode={displayMode} />
+                                    </div>
+                                    <div className={`h-1/2 p-1 text-xs leading-tight flex flex-col justify-center ${event2.color}`}>
+                                        <EventBody event={event2} displayMode={displayMode} />
+                                    </div>
+                                </div>
+                            )
+                        } else {
+                            processedEventIds.add(event.id);
                             return (
                                 <div
                                     key={event.id}
                                     className={`p-1 text-xs leading-tight rounded-md border m-1 flex flex-col justify-center overflow-hidden z-10 ${event.color} timetable-grid-event`}
-                                    style={{
-                                        gridRow: dayRow,
-                                        gridColumn: `${clampedColStart} / ${clampedColEnd}`,
-                                    }}
+                                    style={gridPosition}
                                 >
-                                    <strong className="font-semibold truncate">{event.className}</strong>
-                                    <span className="truncate">{event.subject}</span>
-                                    <span className="opacity-80 truncate">{event.teacher}</span>
-                                    <strong className="font-medium truncate">{event.hall}</strong>
+                                    <EventBody event={event} displayMode={displayMode} />
                                 </div>
                             );
-                        })
-                    }
+                        }
+                    })}
                 </React.Fragment>
             );
         })}

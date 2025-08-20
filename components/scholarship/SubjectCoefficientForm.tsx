@@ -9,28 +9,45 @@ interface SubjectCoefficientFormProps {
   onCancel: () => void;
 }
 
+type SessionMode = 'full' | 'groups' | 'mixed';
+
 const initialFormData = {
   subject: '',
   level: '',
   specialization: '',
   hours: '',
   coefficient: '',
+  groupHours: '',
 };
 
 
 export const SubjectCoefficientForm: React.FC<SubjectCoefficientFormProps> = ({ subject, onSave, onCancel }) => {
   const [formData, setFormData] = useState(initialFormData);
+  const [sessionMode, setSessionMode] = useState<SessionMode>('full');
 
   useEffect(() => {
     if (subject) {
+      const totalHours = parseFloat(subject.hours || '0');
+      const groupHoursNum = parseFloat(subject.groupHours || '0');
+      let mode: SessionMode = 'full';
+      if (groupHoursNum > 0) {
+        if (groupHoursNum >= totalHours && totalHours > 0) {
+            mode = 'groups';
+        } else {
+            mode = 'mixed';
+        }
+      }
+      setSessionMode(mode);
       setFormData({
         subject: subject.subject,
         level: subject.level,
         specialization: subject.specialization,
         hours: subject.hours,
         coefficient: subject.coefficient,
+        groupHours: subject.groupHours || '',
       });
     } else {
+      setSessionMode('full');
       setFormData(initialFormData);
     }
   }, [subject]);
@@ -55,7 +72,21 @@ export const SubjectCoefficientForm: React.FC<SubjectCoefficientFormProps> = ({ 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const dataToSave: Omit<SubjectCoefficient, 'id'> = {
+        subject: formData.subject,
+        level: formData.level,
+        specialization: formData.specialization,
+        hours: formData.hours,
+        coefficient: formData.coefficient,
+    };
+    if (sessionMode === 'full') {
+        dataToSave.groupHours = '0';
+    } else if (sessionMode === 'groups') {
+        dataToSave.groupHours = formData.hours;
+    } else { // mixed
+        dataToSave.groupHours = formData.groupHours;
+    }
+    onSave(dataToSave);
   };
 
   return (
@@ -85,12 +116,29 @@ export const SubjectCoefficientForm: React.FC<SubjectCoefficientFormProps> = ({ 
                 </select>
             </div>
             <div>
-                <label htmlFor="hours" className="block text-sm font-medium text-gray-700">Heures</label>
+                <label htmlFor="hours" className="block text-sm font-medium text-gray-700">Heures Totales</label>
                 <input type="text" id="hours" name="hours" value={formData.hours} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="ex: 4 ou 1.5" required />
             </div>
             <div>
                 <label htmlFor="coefficient" className="block text-sm font-medium text-gray-700">Coefficient</label>
                 <input type="text" id="coefficient" name="coefficient" value={formData.coefficient} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="ex: 3 ou 1" required />
+            </div>
+
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                 <div>
+                    <label htmlFor="sessionMode" className="block text-sm font-medium text-gray-700">Type de séance</label>
+                    <select id="sessionMode" name="sessionMode" value={sessionMode} onChange={(e) => setSessionMode(e.target.value as SessionMode)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="full">Classe entière</option>
+                        <option value="groups">En groupes</option>
+                        <option value="mixed">Mixte</option>
+                    </select>
+                </div>
+                {sessionMode === 'mixed' && (
+                     <div className="animate-fade-in">
+                        <label htmlFor="groupHours" className="block text-sm font-medium text-gray-700">Heures en groupe</label>
+                        <input type="text" id="groupHours" name="groupHours" value={formData.groupHours} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="ex: 2" required />
+                    </div>
+                )}
             </div>
         </div>
       </div>

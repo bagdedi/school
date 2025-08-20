@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { SidebarItem } from './components/SidebarItem';
 import { DashboardIcon } from './components/icons/DashboardIcon';
@@ -24,143 +24,44 @@ import TimetableHallsPage from './components/timetable/TimetableHallsPage';
 import EtablissementPage from './components/settings/EtablissementPage';
 import { BuildingOfficeIcon } from './components/icons/BuildingOfficeIcon';
 import EtatPedagogiquePage from './components/scholarship/EtatPedagogiquePage';
+import { initialClasses, mockStudents, initialWorkingHours, initialHalls } from './components/timetable/mockData';
 
-// --- Data Generation Helpers ---
-const studentFirstNamesMale = ['Karim', 'Ali', 'Mohamed', 'Ahmed', 'Youssef', 'Omar', 'Sami', 'Walid', 'Khaled', 'Anis', 'Hedi', 'Nizar', 'Fares', 'Rami', 'Zied'];
-const studentFirstNamesFemale = ['Amira', 'Fatma', 'Salma', 'Mariem', 'Nour', 'Yasmine', 'Ines', 'Sarah', 'Leila', 'Rim', 'Hedia', 'Sonia', 'Faten', 'Amel', 'Cyrine'];
-const studentLastNames = ['Ben Ali', 'Mansouri', 'Zouari', 'Trabelsi', 'Guesmi', 'Jlassi', 'Dridi', 'Amri', 'Chebbi', 'Saidi', 'Khemiri', 'Mejri', 'Hamdi', 'Toumi', 'Abbasi'];
-const places = ['Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte', 'Gabès', 'Nabeul', 'Monastir', 'Ariana', 'Ben Arous', 'Manouba'];
-const optionalSubjectsList = ['Musique', 'espagnole', 'allemand', 'Dessin'];
 
-const getSpecialiteAbbr = (specialite: string): string => {
-  const abbreviations: { [key: string]: string } = {
-    'Tronc commun': 'AS', 'Tronc Commun': 'AS', 'Sport': 'SPORT', 'Sciences': 'SC', 'Économie et Services': 'ECO-SERV',
-    'Economie et Gestion': 'ECO-GES', 'Lettres': 'LETT', 'Sciences Expérimentales': 'SC.EXP', 'Mathématiques': 'MATH',
-    'Techniques': 'TECH', 'Technologie': 'TECH', 'Sciences Informatiques': 'INFO', "Sciences de l'Informatique": 'INFO',
-    "Technologie de l'Informatique": 'INFO-TECH'
-  };
-  return abbreviations[specialite] || specialite.substring(0, 4).toUpperCase();
-};
-
-const specializationsByLevel: { [key: string]: string[] } = {
-  '1 annee': ['Tronc Commun'],
-  '2 annee': ['Lettres', 'Économie et Services', 'Technologie de l\'Informatique', 'Sciences'],
-  '3 annee': ['Lettres', 'Économie et Gestion', 'Sciences de l\'Informatique', 'Sciences Techniques', 'Sciences Expérimentales', 'Mathématiques', 'Sport'],
-  '4 annee': ['Lettres', 'Économie et Gestion', 'Sciences de l\'Informatique', 'Sciences Techniques', 'Sciences Expérimentales', 'Mathématiques', 'Sport'],
-};
-const levels = ['1 annee', '2 annee', '3 annee', '4 annee'];
-
-const generateClasses = (): Classe[] => {
-    const classes: Classe[] = [];
-    let classIdCounter = 1;
-    levels.forEach(niveau => {
-        const specialites = specializationsByLevel[niveau];
-        specialites.forEach(specialite => {
-            for (let i = 1; i <= 3; i++) {
-                const niveauPrefix = niveau.split(' ')[0];
-                const specialiteAbbr = getSpecialiteAbbr(specialite);
-                const className = `${niveauPrefix} ${specialiteAbbr} ${i}`;
-                classes.push({
-                    id: `c${classIdCounter++}`,
-                    niveau: niveau,
-                    specialite: specialite,
-                    number: i,
-                    name: className,
-                });
-            }
-        });
-    });
-    return classes.sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-};
-
-const initialClasses: Classe[] = generateClasses();
-
-const getBirthYearForLevel = (level: string): number => {
-    const currentYear = new Date().getFullYear();
-    switch (level) {
-        case '1 annee': return currentYear - 15;
-        case '2 annee': return currentYear - 16;
-        case '3 annee': return currentYear - 17;
-        case '4 annee': return currentYear - 18;
-        default: return currentYear - 16;
-    }
-};
-
-const generateStudents = (classes: Classe[]): Student[] => {
-    const students: Student[] = [];
-    let studentIdCounter = 1;
-
-    classes.forEach(c => {
-        for (let i = 0; i < 20; i++) {
-            const gender = Math.random() > 0.5 ? 'Male' : 'Female';
-            const firstName = gender === 'Male'
-                ? studentFirstNamesMale[Math.floor(Math.random() * studentFirstNamesMale.length)]
-                : studentFirstNamesFemale[Math.floor(Math.random() * studentFirstNamesFemale.length)];
-            const lastName = studentLastNames[Math.floor(Math.random() * studentLastNames.length)];
-            const id = `S${String(studentIdCounter).padStart(4, '0')}`;
-            const birthYear = getBirthYearForLevel(c.niveau) + (Math.random() > 0.5 ? 0 : -1);
-            
-            students.push({
-                id: id,
-                matricule: `S2024${String(studentIdCounter).padStart(4, '0')}`,
-                avatar: `https://i.pravatar.cc/150?u=${id}`,
-                firstName: firstName,
-                lastName: lastName,
-                gender: gender,
-                dateOfBirth: `${birthYear}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-                placeOfBirth: places[Math.floor(Math.random() * places.length)],
-                address: `${Math.floor(Math.random() * 100) + 1} Avenue Habib Bourguiba, ${places[Math.floor(Math.random() * places.length)]}`,
-                academicLevel: c.niveau,
-                academicSpecialty: c.specialite,
-                option: (c.niveau === '3 annee' || c.niveau === '4 annee') && Math.random() > 0.6 
-                    ? optionalSubjectsList[Math.floor(Math.random() * optionalSubjectsList.length)]
-                    : '',
-                parentPhone: `216-${String(Math.floor(Math.random() * 80) + 20)}-${String(Math.floor(Math.random() * 900) + 100)}-${String(Math.floor(Math.random() * 900) + 100).slice(0,3)}`,
-                parentEmail: `${lastName.toLowerCase().replace(' ','')}.${firstName.charAt(0).toLowerCase()}.parent@email.com`,
-                classe: c.name,
-                schoolYear: '2025/2026',
-                idNumber: `1${Array(7).fill(0).map(() => Math.floor(Math.random() * 10)).join('')}`,
-                academicDiploma: c.niveau === '4 annee' ? 'Baccalauréat' : 'N/A',
-            });
-            studentIdCounter++;
+// Custom hook for persisting state to localStorage
+function usePersistentState<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState<T>(() => {
+        try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+            console.warn(`Error reading localStorage key "${key}":`, error);
+            return initialValue;
         }
     });
-    return students;
-};
 
-const mockStudents: Student[] = generateStudents(initialClasses);
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(key, JSON.stringify(state));
+        } catch (error) {
+            console.warn(`Error setting localStorage key "${key}":`, error);
+        }
+    }, [key, state]);
 
-const initialWorkingHours: DayWorkingHours[] = [
-    { day: 'Lundi', dayIndex: 1, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
-    { day: 'Mardi', dayIndex: 2, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
-    { day: 'Mercredi', dayIndex: 3, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
-    { day: 'Jeudi', dayIndex: 4, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '14:00', afternoonEnd: '18:00' },
-    { day: 'Vendredi', dayIndex: 5, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '', afternoonEnd: '' },
-    { day: 'Samedi', dayIndex: 6, isWorkingDay: true, morningStart: '08:00', morningEnd: '12:00', afternoonStart: '', afternoonEnd: '' },
-];
-
-const generateHalls = (): string[] => {
-    const halls: string[] = [];
-    for (let i = 1; i <= 28; i++) halls.push(`Salle ${i}`);
-    for (let i = 1; i <= 4; i++) halls.push(`Labo PH ${i}`);
-    for (let i = 1; i <= 4; i++) halls.push(`Labo SVT ${i}`);
-    for (let i = 1; i <= 4; i++) halls.push(`Salle Informatique ${i}`);
-    for (let i = 1; i <= 4; i++) halls.push(`Salle Technologie ${i}`);
-    for (let i = 1; i <= 4; i++) halls.push(`Terrain du Sport ${i}`);
-    return halls.sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
-};
-const initialHalls = generateHalls();
+    return [state, setState];
+}
 
 
 const App: React.FC = () => {
   const [activeItem, setActiveItem] = useState<string>('Dashboard');
-  const [schoolName, setSchoolName] = useState('Northwood High');
-  const [schoolLogo, setSchoolLogo] = useState<React.ReactNode>(<LogoIcon />);
-  const [workingHours, setWorkingHours] = useState<DayWorkingHours[]>(initialWorkingHours);
-  const [optionalSubjects, setOptionalSubjects] = useState<string[]>(['Musique', 'espagnole', 'allemand', 'Dessin']);
-  const [classes, setClasses] = useState<Classe[]>(initialClasses);
-  const [students, setStudents] = useState<Student[]>(mockStudents);
-  const [halls, setHalls] = useState<string[]>(initialHalls);
+  const [schoolName, setSchoolName] = usePersistentState('schoolName', 'Northwood High');
+  const [schoolLogoUrl, setSchoolLogoUrl] = usePersistentState<string | null>('schoolLogoUrl', null);
+  const [workingHours, setWorkingHours] = usePersistentState<DayWorkingHours[]>('workingHours', initialWorkingHours);
+  const [optionalSubjects, setOptionalSubjects] = usePersistentState<string[]>('optionalSubjects', ['Musique', 'espagnole', 'allemand', 'Dessin']);
+  const [classes, setClasses] = usePersistentState<Classe[]>('classes', initialClasses);
+  const [students, setStudents] = usePersistentState<Student[]>('students', mockStudents);
+  const [halls, setHalls] = usePersistentState<string[]>('halls', initialHalls);
+
+  const schoolLogo = schoolLogoUrl ? <img src={schoolLogoUrl} alt="School Logo" className="h-8 w-8 object-contain" /> : <LogoIcon />;
 
   const [sharedFilters, setSharedFilters] = useState<SharedFilterState>({
     niveau: '',
@@ -279,6 +180,7 @@ const App: React.FC = () => {
         return <EtatPedagogiquePage 
           optionalSubjects={optionalSubjects} 
           students={students}
+          classes={classes}
           filters={sharedFilters}
           onFilterChange={handleFilterChange}
           onResetFilters={resetSharedFilters}
@@ -289,7 +191,7 @@ const App: React.FC = () => {
           schoolName={schoolName}
           setSchoolName={setSchoolName}
           schoolLogo={schoolLogo}
-          setSchoolLogo={setSchoolLogo}
+          setSchoolLogoUrl={setSchoolLogoUrl}
           workingHours={workingHours}
           setWorkingHours={setWorkingHours}
           optionalSubjects={optionalSubjects}

@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { FilterIcon } from '../icons/FilterIcon';
 import { ResetIcon } from '../icons/ResetIcon';
-import type { Student, SharedFilterState } from '../../types';
+import type { Student, SharedFilterState, Classe } from '../../types';
 import { Modal } from '../common/Modal';
 import { ClassDetailsTable } from './ClassDetailsTable';
 
 const anneeScolaireOptions = ['2023-2024', '2024-2025', '2025-2026'];
-const niveauOptions = ['1 annee', '2 annee', '3 annee', '4 annee'];
 
 // --- DYNAMIC DATA COMPONENTS ---
 
@@ -108,6 +107,7 @@ const ClasseCard: React.FC<ClasseCardProps> = ({ data, onShowDetails }) => {
 interface EtatPedagogiquePageProps {
   optionalSubjects: string[];
   students: Student[];
+  classes: Classe[];
   filters: SharedFilterState;
   onFilterChange: (filterName: keyof SharedFilterState, value: string) => void;
   onResetFilters: () => void;
@@ -116,6 +116,7 @@ interface EtatPedagogiquePageProps {
 const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({ 
   optionalSubjects, 
   students,
+  classes,
   filters,
   onFilterChange,
   onResetFilters 
@@ -137,8 +138,14 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
   }, [isFiltered, students, filters, anneeScolaire]);
 
   const classeStats = useMemo((): ClasseStat[] => {
-    if (filteredStudentsForStats.length === 0) return [];
-    
+    if (!isFiltered) return [];
+
+    const relevantClasses = classes.filter(c => {
+        const niveauMatch = filters.niveau ? c.niveau === filters.niveau : true;
+        const specialiteMatch = filters.specialite ? c.specialite === filters.specialite : true;
+        return niveauMatch && specialiteMatch;
+    });
+
     const studentsByClass = filteredStudentsForStats.reduce((acc, student) => {
         const classeName = student.classe || 'Non assigné';
         if (!acc[classeName]) {
@@ -148,8 +155,9 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
         return acc;
     }, {} as Record<string, Student[]>);
     
+    return relevantClasses.map((c) => {
+        const classStudents = studentsByClass[c.name] || [];
 
-    return Object.entries(studentsByClass).map(([className, classStudents], index) => {
         const optionsStatsForClass = classStudents
             .filter(s => s.option)
             .reduce((acc, student) => {
@@ -163,38 +171,25 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
             .sort((a,b) => b.value - a.value);
             
         return {
-            id: `class-stat-${className}-${index}`,
-            name: className,
+            id: c.id,
+            name: c.name,
             totalStudents: classStudents.length,
             males: classStudents.filter(s => s.gender === 'Male').length,
             females: classStudents.filter(s => s.gender === 'Female').length,
             optionsDistribution,
         };
-    }).sort((a,b) => a.name.localeCompare(b.name));
-  }, [filteredStudentsForStats]);
+    }).sort((a,b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }, [isFiltered, classes, filters, filteredStudentsForStats]);
 
+
+  const niveauOptions = useMemo(() => [...new Set(classes.map(c => c.niveau))].sort(), [classes]);
 
   const availableSpecialites = useMemo(() => {
-    switch (filters.niveau) {
-      case '1 annee':
-        return ['Tronc commun', 'Sport'];
-      case '2 annee':
-        return ['Sciences', 'Technologie', 'Lettres', 'Sport', 'Economie et Gestion'];
-      case '3 annee':
-      case '4 annee':
-        return [
-          'Mathématiques',
-          'Sciences Expérimentales',
-          'Techniques',
-          'Sport',
-          'Lettres',
-          'Economie et Gestion',
-          'Sciences Informatiques'
-        ];
-      default:
-        return [];
+    if (!filters.niveau) {
+      return [...new Set(classes.map(c => c.specialite))].sort();
     }
-  }, [filters.niveau]);
+    return [...new Set(classes.filter(c => c.niveau === filters.niveau).map(c => c.specialite))].sort();
+  }, [filters.niveau, classes]);
 
   const isSpecialiteDisabled = !filters.niveau;
   const isOptionDisabled = filters.niveau !== '3 annee' && filters.niveau !== '4 annee';

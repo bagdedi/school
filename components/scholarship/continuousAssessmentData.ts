@@ -9,7 +9,7 @@ export interface Exam {
 }
 
 export interface AssessmentRule {
-  subject: string;
+  subject: string | string[];
   levels: string[];
   specializations: string[];
   exams: Exam[];
@@ -305,6 +305,19 @@ const assessmentData: AssessmentRule[] = [
       formula: '(TP + DC + 2×DS) / 4',
       formulaDescription: 'Moyenne Trimestrielle',
   },
+  {
+      subject: ['Génie Électrique', 'Génie Mécanique'],
+      levels: ['3 annee', '4 annee'],
+      specializations: ['Sciences Techniques'],
+      exams: [
+          { name: 'Travaux Pratiques (TP)', coefficient: 1, frequency: 'Continu', duration: '1h 30min' },
+          { name: 'Devoir de Contrôle (DC)', coefficient: 1, frequency: '1 par trimestre', duration: '2h' },
+          { name: 'Devoir de Synthèse (DS)', coefficient: 2, frequency: '1 par trimestre', duration: '3h' },
+      ],
+      formula: '(TP + DC + 2×DS) / 4',
+      formulaDescription: 'Moyenne Trimestrielle',
+      notes: ["La note de TP est une moyenne d'au moins deux évaluations pratiques par trimestre."]
+  },
   
   // --- TECHNOLOGIE ---
   {
@@ -478,11 +491,15 @@ export const findAssessmentRule = (subjectDetails: SubjectCoefficient | null): A
   const normalizedSubject = subject.toLowerCase().includes('biologiques') ? 'Sciences Biologiques' : subject;
 
   // Find the most specific rule first
-  const rule = assessmentData.find(rule => 
-    rule.subject.toLowerCase() === normalizedSubject.toLowerCase() &&
-    rule.levels.includes(level) &&
-    rule.specializations.includes(specialization)
-  );
+  const rule = assessmentData.find(rule => {
+    const subjectMatch = Array.isArray(rule.subject)
+      ? rule.subject.map(s => s.toLowerCase()).includes(normalizedSubject.toLowerCase())
+      : rule.subject.toLowerCase() === normalizedSubject.toLowerCase();
+      
+    return subjectMatch &&
+      rule.levels.includes(level) &&
+      rule.specializations.includes(specialization);
+  });
 
   return rule;
 };

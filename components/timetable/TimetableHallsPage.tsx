@@ -78,7 +78,7 @@ const TimetableHallsPage: React.FC<TimetableHallsPageProps> = ({ workingHours, s
             <h1 className="text-2xl font-bold">{printTitle}</h1>
             <p>{schoolName}</p>
         </div>
-        <Timetable events={filteredEvents} workingHours={workingHours} />
+        <Timetable events={filteredEvents} workingHours={workingHours} displayMode="hall" />
       </div>
 
     </div>

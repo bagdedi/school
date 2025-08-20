@@ -5,62 +5,8 @@ import { PencilIcon } from '../icons/PencilIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import { Modal } from '../common/Modal';
 import { TeacherForm } from './TeacherForm';
+import { mockTeachers } from '../timetable/mockData';
 
-// --- Data Generation ---
-const teacherFirstNamesMale = ['Karim', 'Ali', 'Mohamed', 'Ahmed', 'Youssef', 'Omar', 'Sami', 'Walid', 'Khaled', 'Anis', 'Hedi', 'Nizar'];
-const teacherFirstNamesFemale = ['Salma', 'Mariem', 'Nour', 'Yasmine', 'Ines', 'Sarah', 'Leila', 'Rim', 'Hedia', 'Sonia', 'Faten', 'Amel'];
-const teacherLastNames = ['Ben Ali', 'Mansouri', 'Zouari', 'Trabelsi', 'Guesmi', 'Jlassi', 'Dridi', 'Amri', 'Chebbi', 'Saidi', 'Khemiri', 'Mejri'];
-const subjects = [
-    'Arabe', 'Français', 'Anglais', 'Histoire', 'Géographie', 'Pensée Islamique', 'Education Civile', 'Mathématiques', 
-    'Physique', 'Sciences de la Vie et de la Terre', 'Technologie', 'Informatique', 'Sport', 'Arts', 'Projet', 'Philosophie', 'Economie', 
-    'Gestion', 'Algorithmique & Programmation', 'Systèmes & Réseaux', 'Bases de données', 'Tech-Inf-comm (TIC)'
-];
-const places = ['Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte', 'Gabès', 'Nabeul', 'Monastir'];
-const diplomas = ['Doctorat', 'Masters', 'Bachelors'];
-const statuses = ['Permanent', 'Vacataire', 'Contractuel'];
-
-const generateTeachers = (): Teacher[] => {
-    const teachers: Teacher[] = [];
-    let teacherIdCounter = 1;
-
-    subjects.forEach(subject => {
-        for (let i = 0; i < 4; i++) {
-            const gender = Math.random() > 0.5 ? 'Male' : 'Female';
-            const firstName = gender === 'Male' 
-                ? teacherFirstNamesMale[Math.floor(Math.random() * teacherFirstNamesMale.length)]
-                : teacherFirstNamesFemale[Math.floor(Math.random() * teacherFirstNamesFemale.length)];
-            const lastName = teacherLastNames[Math.floor(Math.random() * teacherLastNames.length)];
-            const id = `T${String(teacherIdCounter).padStart(3, '0')}`;
-            
-            teachers.push({
-                id: id,
-                avatar: `https://i.pravatar.cc/150?u=${id}`,
-                email: `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(' ', '')}${i}@northwood.edu`,
-                phone: `555-0${String(teacherIdCounter).padStart(3, '0')}`,
-                firstName: firstName,
-                lastName: lastName,
-                gender: gender,
-                dateOfBirth: `${1964 + Math.floor(Math.random() * 30)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-                placeOfBirth: places[Math.floor(Math.random() * places.length)],
-                nationality: 'Tunisian',
-                address: `${Math.floor(Math.random() * 100) + 1} Rue de la Liberté, ${places[Math.floor(Math.random() * places.length)]}`,
-                diploma: diplomas[Math.floor(Math.random() * diplomas.length)],
-                specialty: subject,
-                professionalStatus: statuses[Math.floor(Math.random() * statuses.length)],
-                yearsOfExperience: String(Math.floor(Math.random() * 25) + 3),
-                matricule: `T2024${String(teacherIdCounter).padStart(3, '0')}`,
-                bank: 'Bank of Academia',
-                rib: Array(20).fill(0).map(() => Math.floor(Math.random() * 10)).join(''),
-                idType: 'CIN',
-                idNumber: Array(8).fill(0).map(() => Math.floor(Math.random() * 10)).join(''),
-            });
-            teacherIdCounter++;
-        }
-    });
-    return teachers;
-};
-
-const mockTeachers: Teacher[] = generateTeachers();
 
 const TeacherCard: React.FC<{ teacher: Teacher, onEdit: (teacher: Teacher) => void; onDelete: (teacherId: string) => void; }> = ({ teacher, onEdit, onDelete }) => (
   <div className="relative bg-white rounded-xl shadow-md p-6 text-center flex flex-col items-center transform hover:-translate-y-1 transition-transform">
