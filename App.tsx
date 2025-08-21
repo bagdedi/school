@@ -7,13 +7,12 @@ import { TeachersIcon } from './components/icons/TeachersIcon';
 import { ScholarshipIcon } from './components/icons/ScholarshipIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
 import { LogoIcon } from './components/icons/LogoIcon';
-import type { NavItem, DayWorkingHours, Classe, Student, SharedFilterState, Payment, StudentGrades, SubjectCoefficient } from './types';
+import type { NavItem, DayWorkingHours, Classe, Student, SharedFilterState, Payment, StudentGrades, SubjectCoefficient, Teacher, AttendanceData } from './types';
 import DashboardPage from './components/dashboard/DashboardPage';
 import StudentsPage from './components/students/StudentsPage';
 import TeachersPage from './components/teachers/TeachersPage';
 import ScholarshipPage from './components/scholarship/ScholarshipPage';
 import SettingsPage from './components/settings/SettingsPage';
-import AttestationPage from './components/students/AttestationPage';
 import AttestationInscriptionPage from './components/students/AttestationInscriptionPage';
 import AttestationPresencePage from './components/students/AttestationPresencePage';
 import { NotFoundPage } from './components/common/NotFoundPage';
@@ -33,6 +32,11 @@ import { mockPayments } from './components/scholarship/mockPaymentData';
 import BulletinsPage from './components/results/BulletinsPage';
 import { mockGradeData } from './components/results/mockGradeData';
 import { mockSubjectCoefficients } from './components/scholarship/mockSubjectData';
+import PresencePunishmentPage from './components/students/PresencePunishmentPage';
+import { UserGroupIcon } from './components/icons/UserGroupIcon';
+import { ClipboardDocumentCheckIcon } from './components/icons/ClipboardDocumentCheckIcon';
+import { ChartBarIcon } from './components/icons/ChartBarIcon';
+import AttendanceAnalyticsPage from './components/students/AttendanceAnalyticsPage';
 
 
 // Custom hook for persisting state to localStorage
@@ -69,9 +73,11 @@ const App: React.FC = () => {
   const [classes, setClasses] = usePersistentState<Classe[]>('classes', initialClasses);
   const [students, setStudents] = usePersistentState<Student[]>('students', mockStudents);
   const [halls, setHalls] = usePersistentState<string[]>('halls', initialHalls);
+  const [teachers, setTeachers] = usePersistentState<Teacher[]>('teachers', mockTeachers);
   const [payments, setPayments] = usePersistentState<Payment[]>('payments', mockPayments);
   const [grades, setGrades] = usePersistentState<StudentGrades[]>('grades', mockGradeData);
   const [subjectCoefficients, setSubjectCoefficients] = usePersistentState<SubjectCoefficient[]>('subjectCoefficients', mockSubjectCoefficients);
+  const [attendanceData, setAttendanceData] = usePersistentState<AttendanceData>('attendanceData', {});
 
 
   const schoolLogo = schoolLogoUrl ? <img src={schoolLogoUrl} alt="School Logo" className="h-8 w-8 object-contain" /> : <LogoIcon />;
@@ -117,11 +123,12 @@ const App: React.FC = () => {
   const navItems: NavItem[] = [
     { name: 'Dashboard', icon: <DashboardIcon /> },
     { 
-      name: 'Students', 
+      name: 'Scolarité', 
       icon: <StudentsIcon />,
       subItems: [
-        { name: 'Management' },
-        { name: 'Attestation' },
+        { name: 'Management', icon: <UserGroupIcon className="h-5 w-5" /> },
+        { name: 'Registres', icon: <ClipboardDocumentCheckIcon className="h-5 w-5" /> },
+        { name: 'Suivi présence', icon: <ChartBarIcon className="h-5 w-5" /> },
       ],
     },
     { name: 'Teachers', icon: <TeachersIcon />, alert: true },
@@ -164,8 +171,13 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeItem) {
       case 'Dashboard':
-        return <DashboardPage />;
-      case 'Students > Management':
+        return <DashboardPage
+          students={students}
+          teachers={teachers}
+          classes={classes}
+          payments={payments}
+        />;
+      case 'Scolarité > Management':
         return <StudentsPage 
           optionalSubjects={optionalSubjects} 
           classes={classes} 
@@ -177,20 +189,27 @@ const App: React.FC = () => {
           setSearchQuery={setSearchQuery}
           onResetFilters={resetSharedFilters}
         />;
-      case 'Students > Attestation':
-        return <AttestationPage 
-          students={students}
+      case 'Scolarité > Registres':
+        return <PresencePunishmentPage 
+          classes={classes} 
+          students={students} 
+          workingHours={workingHours}
+          attendanceData={attendanceData}
+          setAttendanceData={setAttendanceData}
+        />;
+       case 'Scolarité > Suivi présence':
+        return <AttendanceAnalyticsPage
           classes={classes}
+          students={students}
+          attendanceData={attendanceData}
           filters={sharedFilters}
           onFilterChange={handleFilterChange}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           onResetFilters={resetSharedFilters}
         />;
       case 'Teachers':
-        return <TeachersPage />;
+        return <TeachersPage teachers={teachers} setTeachers={setTeachers} />;
       case 'Emplois de temps > Teachers':
-        return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} directorName={directorName} />;
+        return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} directorName={directorName} teachers={teachers} />;
       case 'Emplois de temps > Students':
         return <TimetableStudentsPage workingHours={workingHours} schoolName={schoolName} />;
       case 'Emplois de temps > Halls':
@@ -225,7 +244,7 @@ const App: React.FC = () => {
       case 'Résultat':
       case 'Résultat > Saisie des notes':
         return <ResultatPage 
-            teachers={mockTeachers} 
+            teachers={teachers} 
             classes={classes}
             students={students}
             grades={grades}
@@ -262,10 +281,10 @@ const App: React.FC = () => {
         return <SettingsPage />;
       default:
         // Default to the first page of a section if the parent is somehow selected
-        if (activeItem === 'Students') return <StudentsPage optionalSubjects={optionalSubjects} classes={classes} students={students} setStudents={setStudents} filters={sharedFilters} onFilterChange={handleFilterChange} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onResetFilters={resetSharedFilters} />;
-        if (activeItem === 'Emplois de temps') return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} directorName={directorName} />;
+        if (activeItem === 'Scolarité') return <StudentsPage optionalSubjects={optionalSubjects} classes={classes} students={students} setStudents={setStudents} filters={sharedFilters} onFilterChange={handleFilterChange} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onResetFilters={resetSharedFilters} />;
+        if (activeItem === 'Emplois de temps') return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} directorName={directorName} teachers={teachers} />;
         if (activeItem === 'Scholarship') return <ScholarshipPage subjectCoefficients={subjectCoefficients} setSubjectCoefficients={setSubjectCoefficients} />;
-        if (activeItem === 'Résultat') return <ResultatPage teachers={mockTeachers} classes={classes} students={students} grades={grades} setGrades={setGrades} />;
+        if (activeItem === 'Résultat') return <ResultatPage teachers={teachers} classes={classes} students={students} grades={grades} setGrades={setGrades} />;
         return <NotFoundPage onNavigateHome={() => setActiveItem('Dashboard')} />;
     }
   };

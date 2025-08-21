@@ -167,3 +167,18 @@ export interface StudentGrades {
   term: 'Trimestre 1' | 'Trimestre 2' | 'Trimestre 3';
   grades: SubjectGrade[];
 }
+
+// --- NEW TYPES FOR ATTENDANCE ---
+export type AttendanceStatus = 'A' | 'R' | 'EX';
+
+export type DailyClassAttendance = {
+  [studentId: string]: {
+    [timeLabel: string]: AttendanceStatus | null;
+  };
+};
+
+export type AttendanceData = {
+  [date: string]: { // YYYY-MM-DD
+    [className: string]: DailyClassAttendance;
+  };
+};

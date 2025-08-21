@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Timetable } from './Timetable';
-import { mockEvents, mockTeachers } from './mockData';
+import { mockEvents } from './mockData';
 import { ResetIcon } from '../icons/ResetIcon';
 import type { DayWorkingHours, Teacher } from '../../types';
 import { PrintIcon } from '../icons/PrintIcon';
@@ -21,32 +21,33 @@ interface TimetableTeachersPageProps {
   workingHours: DayWorkingHours[];
   schoolName: string;
   directorName: string;
+  teachers: Teacher[];
 }
 
-const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHours, schoolName, directorName }) => {
+const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHours, schoolName, directorName, teachers }) => {
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const specialties = useMemo(() => [...new Set(mockTeachers.map(t => t.specialty))].sort(), []);
+  const specialties = useMemo(() => [...new Set(teachers.map(t => t.specialty))].sort(), [teachers]);
 
   const availableTeachers = useMemo(() => {
-    let teachers = mockTeachers;
+    let filteredTeachers = teachers;
 
     if (selectedSpecialty) {
-      teachers = teachers.filter(t => t.specialty === selectedSpecialty);
+      filteredTeachers = filteredTeachers.filter(t => t.specialty === selectedSpecialty);
     }
     
     if (searchQuery.trim() !== '') {
         const lowercasedQuery = searchQuery.toLowerCase().trim();
-        teachers = teachers.filter(t => 
+        filteredTeachers = filteredTeachers.filter(t => 
             `${t.firstName} ${t.lastName}`.toLowerCase().includes(lowercasedQuery) ||
             `${t.lastName} ${t.firstName}`.toLowerCase().includes(lowercasedQuery)
         );
     }
 
-    return teachers.sort((a,b) => a.lastName.localeCompare(b.lastName));
-  }, [selectedSpecialty, searchQuery]);
+    return filteredTeachers.sort((a,b) => a.lastName.localeCompare(b.lastName));
+  }, [selectedSpecialty, searchQuery, teachers]);
   
   // Effect to clear selected teacher if they are filtered out
   useEffect(() => {
@@ -59,7 +60,7 @@ const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHo
   const teacherDetails = useMemo(() => {
     if (!selectedTeacher) return null;
 
-    const teacher = mockTeachers.find(t => `${t.firstName} ${t.lastName}` === selectedTeacher);
+    const teacher = teachers.find(t => `${t.firstName} ${t.lastName}` === selectedTeacher);
     if (!teacher) return null;
 
     const events = mockEvents.filter(e => e.teacher === selectedTeacher);
@@ -79,7 +80,7 @@ const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHo
       volumeByClass,
       totalVolume
     };
-  }, [selectedTeacher]);
+  }, [selectedTeacher, teachers]);
 
   const filteredEvents = useMemo(() => {
     if (!selectedTeacher) {
@@ -98,7 +99,7 @@ const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHo
     const teacherName = e.target.value;
     setSelectedTeacher(teacherName);
     if (teacherName) {
-        const teacher = mockTeachers.find(t => `${t.firstName} ${t.lastName}` === teacherName);
+        const teacher = teachers.find(t => `${t.firstName} ${t.lastName}` === teacherName);
         if (teacher && !selectedSpecialty) {
             setSelectedSpecialty(teacher.specialty);
         }

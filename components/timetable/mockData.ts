@@ -373,7 +373,7 @@ const generateFullTimetable = (): TimetableEvent[] => {
         events.push({ ...details, id: String(eventId++), color: getSubjectColor(details.subject) });
     };
 
-    // --- NEW: Hardness-based sorting ---
+    // --- Sorting Heuristic ---
     const specialSubjects = Object.keys(categorizedHalls).filter(k => k !== 'general');
     const isSpecialized = (subject: string) => specialSubjects.includes(subject);
 
@@ -393,17 +393,20 @@ const generateFullTimetable = (): TimetableEvent[] => {
         }
         return 0; // Easiest: full class, general room
     };
+    
+    // Prioritize longer sessions first, then harder (more resource-intensive) sessions.
+    const getDuration = (item: ScheduleItem) => item.type === 'paired_group' ? item.session1.duration : item.session.duration;
 
     scheduleQueue.sort((a, b) => {
-        const hardnessA = getHardness(a);
-        const hardnessB = getHardness(b);
-        if (hardnessA !== hardnessB) {
-            return hardnessB - hardnessA;
+        const durationA = getDuration(a);
+        const durationB = getDuration(b);
+        if (durationA !== durationB) {
+            return durationB - durationA; // Primary sort: duration descending
         }
         
-        // If hardness is the same, sort by duration
-        const getDuration = (item: ScheduleItem) => item.type === 'paired_group' ? item.session1.duration : item.session.duration;
-        return getDuration(b) - getDuration(a);
+        const hardnessA = getHardness(a);
+        const hardnessB = getHardness(b);
+        return hardnessB - hardnessA; // Secondary sort: hardness descending
     });
 
     const isOccupied = (type: 'teacher' | 'hall' | 'class', id: string, day: number, startM: number, endM: number): boolean => {

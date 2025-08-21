@@ -1,10 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import type { Student, Classe, SharedFilterState } from '../../types';
+import type { Student, Classe, SharedFilterState, AttestationType } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { PencilIcon } from '../icons/PencilIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import { Modal } from '../common/Modal';
 import { StudentForm } from './StudentForm';
+import { AttestationSelectionModal } from './AttestationSelectionModal';
+import { StudentDetailsModal } from './StudentDetailsModal';
+import { EyeIcon } from '../icons/EyeIcon';
+import { DocumentDuplicateIcon } from '../icons/DocumentDuplicateIcon';
+
+// This tells TypeScript that we expect `process` to be available in the global
+// scope, as provided by the execution environment.
+declare const process: any;
+
 
 interface StudentsPageProps {
   optionalSubjects: string[];
@@ -31,6 +40,11 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [isAttestationModalOpen, setIsAttestationModalOpen] = useState(false);
+  const [studentForAttestation, setStudentForAttestation] = useState<Student | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [studentForDetails, setStudentForDetails] = useState<Student | null>(null);
+
 
   const handleAddStudent = () => {
     setEditingStudent(null);
@@ -68,6 +82,33 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
     }
     setIsModalOpen(false);
     setEditingStudent(null);
+  };
+
+  const handleDetailsClick = (student: Student) => {
+    setStudentForDetails(student);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleAttestationClick = (student: Student) => {
+    setStudentForAttestation(student);
+    setIsAttestationModalOpen(true);
+  };
+
+  const handleGenerateAttestation = (type: AttestationType) => {
+    if (!studentForAttestation) return;
+    const apiKey = process.env.API_KEY;
+    const studentData = encodeURIComponent(JSON.stringify(studentForAttestation));
+    const keyQueryParam = apiKey ? `&key=${apiKey}` : '';
+    
+    if (type === 'inscription' || type === 'both') {
+      window.open(`/attestation/inscription?student=${studentData}${keyQueryParam}`, '_blank');
+    }
+    if (type === 'presence' || type === 'both') {
+      window.open(`/attestation/presence?student=${studentData}${keyQueryParam}`, '_blank');
+    }
+
+    setIsAttestationModalOpen(false);
+    setStudentForAttestation(null);
   };
 
   const uniqueNiveaux = useMemo(() => [...new Set(classes.map(c => c.niveau))].sort(), [classes]);
@@ -191,15 +232,33 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
                   <td className="py-3 px-4">
                     <div className="flex justify-center items-center space-x-2">
                       <button
+                        onClick={() => handleDetailsClick(student)}
+                        className="p-2 text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                        title="Détails"
+                        aria-label={`Détails de ${student.firstName} ${student.lastName}`}
+                      >
+                        <EyeIcon />
+                      </button>
+                      <button
                         onClick={() => handleEditStudent(student)}
-                        className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-200 transition-colors"
+                        className="p-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+                        title="Modifier"
                         aria-label={`Modifier ${student.firstName} ${student.lastName}`}
                       >
                         <PencilIcon />
                       </button>
+                       <button
+                        onClick={() => handleAttestationClick(student)}
+                        className="flex items-center bg-teal-500 text-white text-sm font-semibold py-2 px-3 rounded-lg hover:bg-teal-600 transition-colors"
+                        title="Générer une attestation"
+                        aria-label={`Générer attestation pour ${student.firstName} ${student.lastName}`}
+                      >
+                        <DocumentDuplicateIcon className="h-4 w-4 mr-1"/><span>Attestation</span>
+                      </button>
                       <button
                         onClick={() => handleDeleteStudent(student.id)}
-                        className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-gray-200 transition-colors"
+                        className="p-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                        title="Supprimer"
                         aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
                       >
                         <TrashIcon />
@@ -226,6 +285,19 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
           classes={classes}
         />
       </Modal>
+      {isAttestationModalOpen && (
+        <AttestationSelectionModal
+          isOpen={isAttestationModalOpen}
+          onClose={() => setIsAttestationModalOpen(false)}
+          onGenerate={handleGenerateAttestation}
+        />
+      )}
+      {isDetailsModalOpen && studentForDetails && (
+        <StudentDetailsModal
+            student={studentForDetails}
+            onClose={() => setIsDetailsModalOpen(false)}
+        />
+      )}
     </>
   );
 };
