@@ -31,12 +31,12 @@ const assessmentData: AssessmentRule[] = [
       specializations: ALL_SPECIALIZATIONS,
       exams: [
           { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu', duration: 'N/A' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '1 heure (1ère), 2 heures (2e, 3e, 4e)' },
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: 'Variable' },
           { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '2 heures' },
       ],
       formula: '(Moy. Oral + DC + 2×DS) / 4',
       formulaDescription: 'Moyenne Trimestrielle',
-      notes: ["La formule s'applique à tous les niveaux de l'enseignement secondaire, y compris la 1ère année malgré la différence de durée du DC."]
+      notes: ["La durée du Devoir de Contrôle varie selon le niveau mais la formule de calcul reste la même."]
   },
 
   // --- FRANÇAIS (p.9, 15, 18, 21, 24) ---
@@ -84,16 +84,119 @@ const assessmentData: AssessmentRule[] = [
       specializations: ALL_SPECIALIZATIONS,
       exams: [
           { name: 'Note Orale (Speaking + Project)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 (Trimestres 1 & 2 seulement)' },
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 (Trimestres 1 & 2)' },
           { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre' },
       ],
-      formula: 'Voir notes',
-      formulaDescription: 'La formule de calcul change au 3ème trimestre.',
+      formula: 'Variable',
+      formulaDescription: 'La formule change au 3ème trimestre.',
       notes: [
-          "1er et 2ème Trimestre: Moyenne = (Note Orale + Note Contrôle + (Note Synthèse × 2)) / 4",
-          "3ème Trimestre: Pas de devoir de contrôle. Moyenne = (Note Orale + (Note Synthèse × 2)) / 3",
+          "Trimestres 1 & 2: Moyenne = (Note Orale + Note Contrôle + (Note Synthèse × 2)) / 4",
+          "Trimestre 3: Moyenne = (Note Orale + (Note Synthèse × 2)) / 3",
           "La note orale (sur 20) est la somme d'un 'speaking test' (sur 10) et d'un 'project work' (sur 10)."
       ]
+  },
+  
+    // --- PHILOSOPHIE (p.109-110) ---
+  {
+      subject: 'Philosophie',
+      levels: ['2 annee'],
+      specializations: ['Lettres'],
+      exams: [
+          { name: 'Oral', coefficient: 1, frequency: 'Continu' },
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre' },
+          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre' },
+      ],
+      formula: '(Oral + Contrôle + 2×Synthèse) / 4',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+  {
+      subject: 'Philosophie',
+      levels: ['3 annee', '4 annee'],
+      specializations: ['Lettres'],
+      exams: [
+          { name: 'Oral', coefficient: 0.5, frequency: 'Continu' },
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre' },
+          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre' },
+      ],
+      formula: '(0.5×Oral + Contrôle + 2×Synthèse) / 3.5',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+  {
+      subject: 'Philosophie',
+      levels: ['3 annee', '4 annee'],
+      specializations: ['Sciences Expérimentales', 'Mathématiques', 'Sciences Techniques', 'Sciences de l\'Informatique', 'Sport', 'Économie et Gestion'],
+      exams: [
+          { name: 'Oral', coefficient: 0.5, frequency: 'Continu' },
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre' },
+          { name: 'Devoir de Synthèse', coefficient: 1, frequency: '1 par trimestre' },
+      ],
+      formula: '(0.5×Oral + Contrôle + Synthèse) / 2.5',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+
+  // --- HISTOIRE & GÉOGRAPHIE (p.119-122) ---
+  {
+      subject: ['Histoire', 'Géographie'],
+      levels: ['1 annee', '2 annee', '3 annee', '4 annee'],
+      specializations: ALL_SPECIALIZATIONS,
+      exams: [
+          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre' },
+          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre' },
+      ],
+      formula: '(Oral + Contrôle + 2×DS) / 4',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+
+  // --- EDUCATION CIVILE & PENSÉE ISLAMIQUE ---
+  {
+      subject: ['Education Civile', 'Pensée Islamique'],
+      levels: ['1 annee', '2 annee', '3 annee', '4 annee'],
+      specializations: ALL_SPECIALIZATIONS,
+      exams: [
+          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre' },
+          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre' },
+      ],
+      formula: '(Oral + Contrôle + 2×DS) / 4',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+
+  // --- ÉCONOMIE & GESTION ---
+  {
+      subject: 'Economie',
+      levels: ['2 annee', '3 annee'],
+      specializations: ['Économie et Services', 'Économie et Gestion'],
+      exams: [
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
+          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '2h' },
+          { name: 'Note de Projet', coefficient: 1, frequency: '1 par trimestre' },
+      ],
+      formula: '(Contrôle + 2×Synthèse + Projet) / 4',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+  {
+      subject: 'Economie',
+      levels: ['4 annee'],
+      specializations: ['Économie et Gestion'],
+      exams: [
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '2h' },
+          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '3h' },
+      ],
+      formula: '(Contrôle + 2×Synthèse) / 3',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+  {
+      subject: 'Gestion',
+      levels: ['2 annee', '3 annee', '4 annee'],
+      specializations: ['Économie et Services', 'Économie et Gestion'],
+      exams: [
+          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre' },
+          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre' },
+      ],
+      formula: '(DC + 2×DS) / 3',
+      formulaDescription: 'Moyenne Trimestrielle',
+      notes: ["Durées variables selon le niveau."]
   },
 
   // --- MATHÉMATIQUES (p.37-38) ---
@@ -305,36 +408,34 @@ const assessmentData: AssessmentRule[] = [
       formula: '(TP + DC + 2×DS) / 4',
       formulaDescription: 'Moyenne Trimestrielle',
   },
-  {
+  
+  // --- TECHNOLOGIE & GÉNIE (p. 65, 67) ---
+    {
+      subject: 'Technologie',
+      levels: ['1 annee', '2 annee'],
+      specializations: ['Tronc Commun', 'Sciences', 'Technologie de l\'Informatique'],
+      exams: [
+          { name: 'Devoir de Contrôle (DC)', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
+          { name: 'Projet Commun (PC)', coefficient: 1, frequency: 'Continu' },
+          { name: 'Devoir de Synthèse (DS)', coefficient: 2, frequency: '1 par trimestre', duration: '2h' },
+      ],
+      formula: '(DC + PC + 2×DS) / 4',
+      formulaDescription: 'Moyenne Trimestrielle',
+  },
+    {
       subject: ['Génie Électrique', 'Génie Mécanique'],
       levels: ['3 annee', '4 annee'],
       specializations: ['Sciences Techniques'],
       exams: [
-          { name: 'Travaux Pratiques (TP)', coefficient: 1, frequency: 'Continu', duration: '1h 30min' },
+          { name: 'Tests Pratiques (TP)', coefficient: 1, frequency: 'Continu' },
           { name: 'Devoir de Contrôle (DC)', coefficient: 1, frequency: '1 par trimestre', duration: '2h' },
-          { name: 'Devoir de Synthèse (DS)', coefficient: 2, frequency: '1 par trimestre', duration: '3h' },
+          { name: 'Devoir de Synthèse (DS)', coefficient: 2, frequency: '1 par trimestre', duration: '4h' },
       ],
       formula: '(TP + DC + 2×DS) / 4',
       formulaDescription: 'Moyenne Trimestrielle',
-      notes: ["La note de TP est une moyenne d'au moins deux évaluations pratiques par trimestre."]
-  },
-  
-  // --- TECHNOLOGIE ---
-  {
-      subject: 'Technologie',
-      levels: ['2 annee'],
-      specializations: ['Sciences'],
-      exams: [
-          { name: 'Travaux Pratiques (TP)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle (DC)', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
-          { name: 'Devoir de Synthèse (DS)', coefficient: 2, frequency: '1 par trimestre', duration: '1h 30min' },
-      ],
-      formula: '(TP + DC + 2×DS) / 4',
-      formulaDescription: 'Moyenne Trimestrielle',
-      notes: ["La note de TP est une moyenne d'au moins deux évaluations pratiques par trimestre."]
   },
 
-  // --- INFORMATIQUE (p.87-98) ---
+  // --- INFORMATIQUE (p.87-98) & Specialized Subjects ---
     {
       subject: 'Informatique',
       levels: ['1 annee'],
@@ -361,7 +462,7 @@ const assessmentData: AssessmentRule[] = [
   {
       subject: 'Informatique',
       levels: ['2 annee', '3 annee'],
-      specializations: ['Lettres', 'Économie et Services', 'Sport', 'Sciences'],
+      specializations: ['Lettres', 'Économie et Services', 'Sport', 'Sciences', 'Économie et Gestion'],
       exams: [
           { name: 'Évaluations Périodiques (NG)', coefficient: 1, frequency: 'Au moins 2 par trimestre', duration: '30 min' },
           { name: 'Devoir de Synthèse (DS)', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
@@ -370,9 +471,9 @@ const assessmentData: AssessmentRule[] = [
       formulaDescription: 'Moyenne Trimestrielle',
   },
   {
-      subject: 'Informatique',
-      levels: ['3 annee'],
-      specializations: ['Sciences de l\'Informatique'],
+      subject: ['Informatique', 'Algorithmique & Programmation', 'Systèmes & Réseaux', 'Bases de données', 'Tech-Inf-comm (TIC)'],
+      levels: ['3 annee', '4 annee'],
+      specializations: ['Sciences de l\'Informatique', 'Mathématiques'],
       exams: [
           { name: 'Devoir de Contrôle Pratique (DCP)', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
           { name: 'Devoir de Contrôle Théorique (DCT)', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
@@ -380,18 +481,7 @@ const assessmentData: AssessmentRule[] = [
       ],
       formula: '(DCP + DCT + 2×DS) / 4',
       formulaDescription: 'Moyenne Trimestrielle',
-  },
-   {
-      subject: 'Informatique',
-      levels: ['4 annee'],
-      specializations: ['Sciences de l\'Informatique'],
-      exams: [
-          { name: 'Devoir de Contrôle Pratique (DCP)', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
-          { name: 'Devoir de Contrôle Théorique (DCT)', coefficient: 1, frequency: '1 par trimestre', duration: '1h' },
-          { name: 'Devoir de Synthèse (DS)', coefficient: 2, frequency: '1 par trimestre', duration: '2h' },
-      ],
-      formula: '(DCP + DCT + 2×DS) / 4',
-      formulaDescription: 'Moyenne Trimestrielle',
+      notes: ["Cette règle s'applique à toutes les matières informatiques spécialisées."]
   },
   {
       subject: 'Informatique',
@@ -405,84 +495,41 @@ const assessmentData: AssessmentRule[] = [
       formulaDescription: 'Moyenne Trimestrielle',
   },
 
-  // --- HISTOIRE & GÉOGRAPHIE (p.119-122) ---
+  // --- SPORT, ARTS, PROJET ---
   {
-      subject: 'Histoire',
-      levels: ['1 annee', '2 annee'],
-      specializations: ALL_SPECIALIZATIONS,
-      exams: [
-          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '30 min' },
-          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '1h' },
-      ],
-      formula: '(Oral + Contrôle + 2×DS) / 4',
-      formulaDescription: 'Moyenne Trimestrielle',
-  },
-  {
-      subject: 'Géographie',
-      levels: ['1 annee', '2 annee'],
-      specializations: ALL_SPECIALIZATIONS,
-      exams: [
-          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '30 min' },
-          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '1h' },
-      ],
-      formula: '(Oral + Contrôle + 2×DS) / 4',
-      formulaDescription: 'Moyenne Trimestrielle',
-  },
-  {
-      subject: 'Histoire',
-      levels: ['3 annee', '4 annee'],
-      specializations: ALL_SPECIALIZATIONS,
-      exams: [
-          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '30 min (3e) / 1h (4e)' },
-          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '1h' },
-      ],
-      formula: '(Oral + Contrôle + 2×DS) / 4',
-      formulaDescription: 'Moyenne Trimestrielle',
-  },
-   {
-      subject: 'Géographie',
-      levels: ['3 annee', '4 annee'],
-      specializations: ALL_SPECIALIZATIONS,
-      exams: [
-          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '30 min (3e) / 1h (4e)' },
-          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '1h' },
-      ],
-      formula: '(Oral + Contrôle + 2×DS) / 4',
-      formulaDescription: 'Moyenne Trimestrielle',
-  },
-  
-  // --- PENSÉE ISLAMIQUE (p.137, 142) ---
-  {
-      subject: 'Pensée Islamique',
+      subject: 'Sport',
       levels: ['1 annee', '2 annee', '3 annee', '4 annee'],
       specializations: ALL_SPECIALIZATIONS,
       exams: [
-          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre' },
-          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre' },
+          { name: 'Note Pratique', coefficient: 2, frequency: 'Continu' },
+          { name: 'Note Théorique', coefficient: 1, frequency: 'Continu' },
       ],
-      formula: '(Oral + Contrôle + 2×DS) / 4',
+      formula: '(2×Pratique + Théorique) / 3',
       formulaDescription: 'Moyenne Trimestrielle',
   },
-  
-  // --- EDUCATION CIVILE (p.133) ---
   {
-      subject: 'Education Civile',
-      levels: ['1 annee', '2 annee'],
-      specializations: ALL_SPECIALIZATIONS,
+      subject: 'Arts',
+      levels: ['1 annee'],
+      specializations: ['Tronc Commun'],
       exams: [
-          { name: 'Oral (Chafawi)', coefficient: 1, frequency: 'Continu' },
-          { name: 'Devoir de Contrôle', coefficient: 1, frequency: '1 par trimestre', duration: '30min' },
-          { name: 'Devoir de Synthèse', coefficient: 2, frequency: '1 par trimestre', duration: '1h' },
+          { name: 'Évaluation Continue', coefficient: 1, frequency: 'Continu' },
+          { name: 'Travail de Synthèse', coefficient: 1, frequency: '1 par trimestre' },
       ],
-      formula: '(Oral + Contrôle + 2×DS) / 4',
+      formula: '(Continue + Synthèse) / 2',
       formulaDescription: 'Moyenne Trimestrielle',
+  },
+    {
+      subject: 'Projet',
+      levels: ['1 annee'],
+      specializations: ['Tronc Commun'],
+      exams: [
+          { name: 'Note de Projet', coefficient: 1, frequency: 'Continu' },
+      ],
+      formula: 'Note de Projet',
+      formulaDescription: 'La note du projet constitue la moyenne.',
   },
 ];
+
 
 export const findAssessmentRule = (subjectDetails: SubjectCoefficient | null): AssessmentRule | undefined => {
   if (!subjectDetails) return undefined;

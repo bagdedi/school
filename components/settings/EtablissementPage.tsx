@@ -41,6 +41,7 @@ const getSpecialiteAbbr = (specialite: string): string => {
     'Sciences Expérimentales': 'SC.EXP.',
     'Mathématiques': 'MATH',
     'Techniques': 'TECH.',
+    'Sciences Techniques': 'TECH.',
     'Technologie': 'TECH.',
     'Sciences Informatiques': 'INFO.',
     'Sciences de l\'Informatique': 'INFO.',
@@ -77,7 +78,11 @@ const EtablissementPage: React.FC<EtablissementPageProps> = ({
         const existingClasses = classes.filter(c => c.niveau === newClassNiveau && c.specialite === newClassSpecialite);
         const newNumber = existingClasses.length > 0 ? Math.max(...existingClasses.map(c => c.number)) + 1 : 1;
 
-        const niveauPrefix = newClassNiveau.split(' ')[0];
+        const niveauPrefix = parseInt(newClassNiveau, 10);
+        if (isNaN(niveauPrefix)) {
+            console.error("Invalid niveau format for class name creation.");
+            return;
+        }
         const specialiteAbbr = getSpecialiteAbbr(newClassSpecialite);
 
         const newClassName = `${niveauPrefix} ${specialiteAbbr} ${newNumber}`;

@@ -7,7 +7,7 @@ import { TeachersIcon } from './components/icons/TeachersIcon';
 import { ScholarshipIcon } from './components/icons/ScholarshipIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
 import { LogoIcon } from './components/icons/LogoIcon';
-import type { NavItem, DayWorkingHours, Classe, Student, SharedFilterState } from './types';
+import type { NavItem, DayWorkingHours, Classe, Student, SharedFilterState, Payment, StudentGrades, SubjectCoefficient } from './types';
 import DashboardPage from './components/dashboard/DashboardPage';
 import StudentsPage from './components/students/StudentsPage';
 import TeachersPage from './components/teachers/TeachersPage';
@@ -24,7 +24,15 @@ import TimetableHallsPage from './components/timetable/TimetableHallsPage';
 import EtablissementPage from './components/settings/EtablissementPage';
 import { BuildingOfficeIcon } from './components/icons/BuildingOfficeIcon';
 import EtatPedagogiquePage from './components/scholarship/EtatPedagogiquePage';
-import { initialClasses, mockStudents, initialWorkingHours, initialHalls } from './components/timetable/mockData';
+import { initialClasses, mockStudents, initialWorkingHours, initialHalls, mockTeachers } from './components/timetable/mockData';
+import { DocumentChartBarIcon } from './components/icons/DocumentChartBarIcon';
+import ResultatPage from './components/results/ResultatPage';
+import { CurrencyDollarIcon } from './components/icons/CurrencyDollarIcon';
+import PaiementsPage from './components/scholarship/PaiementsPage';
+import { mockPayments } from './components/scholarship/mockPaymentData';
+import BulletinsPage from './components/results/BulletinsPage';
+import { mockGradeData } from './components/results/mockGradeData';
+import { mockSubjectCoefficients } from './components/scholarship/mockSubjectData';
 
 
 // Custom hook for persisting state to localStorage
@@ -61,6 +69,10 @@ const App: React.FC = () => {
   const [classes, setClasses] = usePersistentState<Classe[]>('classes', initialClasses);
   const [students, setStudents] = usePersistentState<Student[]>('students', mockStudents);
   const [halls, setHalls] = usePersistentState<string[]>('halls', initialHalls);
+  const [payments, setPayments] = usePersistentState<Payment[]>('payments', mockPayments);
+  const [grades, setGrades] = usePersistentState<StudentGrades[]>('grades', mockGradeData);
+  const [subjectCoefficients, setSubjectCoefficients] = usePersistentState<SubjectCoefficient[]>('subjectCoefficients', mockSubjectCoefficients);
+
 
   const schoolLogo = schoolLogoUrl ? <img src={schoolLogoUrl} alt="School Logo" className="h-8 w-8 object-contain" /> : <LogoIcon />;
 
@@ -128,6 +140,15 @@ const App: React.FC = () => {
       subItems: [
         { name: 'Management' },
         { name: 'Etat Pédagogique' },
+        { name: 'Paiements', icon: <CurrencyDollarIcon /> },
+      ]
+    },
+    { 
+      name: 'Résultat', 
+      icon: <DocumentChartBarIcon />,
+      subItems: [
+        { name: 'Saisie des notes' },
+        { name: 'Bulletins' },
       ]
     },
     { 
@@ -176,7 +197,10 @@ const App: React.FC = () => {
         return <TimetableHallsPage workingHours={workingHours} schoolName={schoolName} />;
       case 'Scholarship':
       case 'Scholarship > Management':
-        return <ScholarshipPage />;
+        return <ScholarshipPage 
+          subjectCoefficients={subjectCoefficients}
+          setSubjectCoefficients={setSubjectCoefficients}
+        />;
       case 'Scholarship > Etat Pédagogique':
         return <EtatPedagogiquePage 
           optionalSubjects={optionalSubjects} 
@@ -185,6 +209,36 @@ const App: React.FC = () => {
           filters={sharedFilters}
           onFilterChange={handleFilterChange}
           onResetFilters={resetSharedFilters}
+        />;
+       case 'Scholarship > Paiements':
+        return <PaiementsPage
+            students={students}
+            classes={classes}
+            payments={payments}
+            setPayments={setPayments}
+            filters={sharedFilters}
+            onFilterChange={handleFilterChange}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onResetFilters={resetSharedFilters}
+        />;
+      case 'Résultat':
+      case 'Résultat > Saisie des notes':
+        return <ResultatPage 
+            teachers={mockTeachers} 
+            classes={classes}
+            students={students}
+            grades={grades}
+            setGrades={setGrades}
+        />;
+      case 'Résultat > Bulletins':
+        return <BulletinsPage
+          students={students}
+          classes={classes}
+          grades={grades}
+          schoolName={schoolName}
+          directorName={directorName}
+          subjectCoefficients={subjectCoefficients}
         />;
       case 'Settings': // Default to the first settings page
       case 'Settings > Etablissement':
@@ -210,7 +264,8 @@ const App: React.FC = () => {
         // Default to the first page of a section if the parent is somehow selected
         if (activeItem === 'Students') return <StudentsPage optionalSubjects={optionalSubjects} classes={classes} students={students} setStudents={setStudents} filters={sharedFilters} onFilterChange={handleFilterChange} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onResetFilters={resetSharedFilters} />;
         if (activeItem === 'Emplois de temps') return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} directorName={directorName} />;
-        if (activeItem === 'Scholarship') return <ScholarshipPage />;
+        if (activeItem === 'Scholarship') return <ScholarshipPage subjectCoefficients={subjectCoefficients} setSubjectCoefficients={setSubjectCoefficients} />;
+        if (activeItem === 'Résultat') return <ResultatPage teachers={mockTeachers} classes={classes} students={students} grades={grades} setGrades={setGrades} />;
         return <NotFoundPage onNavigateHome={() => setActiveItem('Dashboard')} />;
     }
   };

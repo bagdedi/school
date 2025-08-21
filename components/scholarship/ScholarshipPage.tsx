@@ -5,7 +5,6 @@ import { PencilIcon } from '../icons/PencilIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import { Modal } from '../common/Modal';
 import { SubjectCoefficientForm } from './SubjectCoefficientForm';
-import { mockSubjectCoefficients } from './mockSubjectData';
 import { ResetIcon } from '../icons/ResetIcon';
 import { levels as allLevels, specializationsByLevel } from './programData';
 import { AcademicCapIcon } from '../icons/AcademicCapIcon';
@@ -13,25 +12,12 @@ import { LibraryIcon } from '../icons/LibraryIcon';
 import { EyeIcon } from '../icons/EyeIcon';
 import { ContinuousAssessmentDetails } from './ContinuousAssessmentDetails';
 
-const ScholarshipPage: React.FC = () => {
-  const [subjectCoefficients, setSubjectCoefficients] = useState<SubjectCoefficient[]>(() => {
-    try {
-      const savedData = localStorage.getItem('subjectCoefficients');
-      return savedData ? JSON.parse(savedData) : mockSubjectCoefficients;
-    } catch (error) {
-      console.warn('Error reading subjectCoefficients from localStorage', error);
-      return mockSubjectCoefficients;
-    }
-  });
+interface ScholarshipPageProps {
+  subjectCoefficients: SubjectCoefficient[];
+  setSubjectCoefficients: React.Dispatch<React.SetStateAction<SubjectCoefficient[]>>;
+}
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('subjectCoefficients', JSON.stringify(subjectCoefficients));
-    } catch (error) {
-      console.warn('Error saving subjectCoefficients to localStorage', error);
-    }
-  }, [subjectCoefficients]);
-  
+const ScholarshipPage: React.FC<ScholarshipPageProps> = ({ subjectCoefficients, setSubjectCoefficients }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<SubjectCoefficient | null>(null);
   const [detailsSubject, setDetailsSubject] = useState<SubjectCoefficient | null>(null);

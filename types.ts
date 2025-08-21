@@ -126,3 +126,44 @@ export interface SharedFilterState {
   option: string;
   classe: string;
 }
+
+export interface Payment {
+  id: string;
+  studentId: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  tranche: string; // e.g., 'Inscription', '1ère Tranche'
+}
+
+export interface Installment {
+  name: string; // 'Inscription', '1ère Tranche', '2ème Tranche', '3ème Tranche'
+  dueDate: string; // YYYY-MM-DD
+  amount: number;
+}
+
+export interface TuitionFee {
+  niveau: string;
+  specialite: string;
+  total: number;
+  installments: Installment[];
+}
+
+// --- NEW TYPES FOR GRADES/BULLETINS ---
+
+export interface SubjectGrade {
+  subjectName: string;
+  notes: { [examName: string]: number | null };
+  coefficient: number;
+  average?: number; // Calculated
+  rank?: number; // Calculated
+  total?: number; // Calculated (average * coefficient)
+  teacher?: string;
+  appreciation?: string;
+  subGrades?: SubjectGrade[];
+}
+
+export interface StudentGrades {
+  studentId: string;
+  term: 'Trimestre 1' | 'Trimestre 2' | 'Trimestre 3';
+  grades: SubjectGrade[];
+}
