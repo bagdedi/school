@@ -13,6 +13,8 @@ import { Modal } from '../common/Modal';
 interface EtablissementPageProps {
   schoolName: string;
   setSchoolName: (name: string) => void;
+  directorName: string;
+  setDirectorName: (name: string) => void;
   schoolLogo: React.ReactNode;
   setSchoolLogoUrl: (url: string | null) => void;
   workingHours: DayWorkingHours[];
@@ -49,9 +51,8 @@ const getSpecialiteAbbr = (specialite: string): string => {
 
 
 const EtablissementPage: React.FC<EtablissementPageProps> = ({
-    schoolName, setSchoolName, schoolLogo, setSchoolLogoUrl, workingHours, setWorkingHours, optionalSubjects, setOptionalSubjects, classes, setClasses, halls, setHalls
+    schoolName, setSchoolName, directorName, setDirectorName, schoolLogo, setSchoolLogoUrl, workingHours, setWorkingHours, optionalSubjects, setOptionalSubjects, classes, setClasses, halls, setHalls
 }) => {
-    const [directorName, setDirectorName] = useState('Dr. Helmi Ahmed EL KAMEL');
     const [newHall, setNewHall] = useState('');
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
 

@@ -54,6 +54,7 @@ function usePersistentState<T>(key: string, initialValue: T): [T, React.Dispatch
 const App: React.FC = () => {
   const [activeItem, setActiveItem] = useState<string>('Dashboard');
   const [schoolName, setSchoolName] = usePersistentState('schoolName', 'Northwood High');
+  const [directorName, setDirectorName] = usePersistentState('directorName', 'Dr. Helmi Ahmed EL KAMEL');
   const [schoolLogoUrl, setSchoolLogoUrl] = usePersistentState<string | null>('schoolLogoUrl', null);
   const [workingHours, setWorkingHours] = usePersistentState<DayWorkingHours[]>('workingHours', initialWorkingHours);
   const [optionalSubjects, setOptionalSubjects] = usePersistentState<string[]>('optionalSubjects', ['Musique', 'espagnole', 'allemand', 'Dessin']);
@@ -168,7 +169,7 @@ const App: React.FC = () => {
       case 'Teachers':
         return <TeachersPage />;
       case 'Emplois de temps > Teachers':
-        return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} />;
+        return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} directorName={directorName} />;
       case 'Emplois de temps > Students':
         return <TimetableStudentsPage workingHours={workingHours} schoolName={schoolName} />;
       case 'Emplois de temps > Halls':
@@ -200,13 +201,15 @@ const App: React.FC = () => {
           setClasses={setClasses}
           halls={halls}
           setHalls={setHalls}
+          directorName={directorName}
+          setDirectorName={setDirectorName}
         />;
       case 'Settings > General':
         return <SettingsPage />;
       default:
         // Default to the first page of a section if the parent is somehow selected
         if (activeItem === 'Students') return <StudentsPage optionalSubjects={optionalSubjects} classes={classes} students={students} setStudents={setStudents} filters={sharedFilters} onFilterChange={handleFilterChange} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onResetFilters={resetSharedFilters} />;
-        if (activeItem === 'Emplois de temps') return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} />;
+        if (activeItem === 'Emplois de temps') return <TimetableTeachersPage workingHours={workingHours} schoolName={schoolName} directorName={directorName} />;
         if (activeItem === 'Scholarship') return <ScholarshipPage />;
         return <NotFoundPage onNavigateHome={() => setActiveItem('Dashboard')} />;
     }

@@ -20,9 +20,10 @@ const timeToMinutes = (time: string): number => {
 interface TimetableTeachersPageProps {
   workingHours: DayWorkingHours[];
   schoolName: string;
+  directorName: string;
 }
 
-const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHours, schoolName }) => {
+const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHours, schoolName, directorName }) => {
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -263,27 +264,26 @@ const TimetableTeachersPage: React.FC<TimetableTeachersPageProps> = ({ workingHo
                                 <p>année scolaire : <span className="font-bold">2025/2026</span></p>
                             </div>
                             <div className="text-right">
-                                <p>horaire demandé : ........................</p>
+                                <p>horaire demandé :</p>
                                 <p>horaire réel : <span className="font-bold">{teacherDetails.totalVolume}h</span></p>
-                                <p>heures supplémentaires: ........................</p>
+                                <p>heures supplémentaires:</p>
                             </div>
                         </div>
 
                         <div className="text-center my-8">
                             <h1 className="font-bold text-base tracking-wider uppercase">Emploi du temps pour l'enseignant :</h1>
                             <p className="mt-2 text-sm font-semibold tracking-wider">{teacherDetails.firstName} {teacherDetails.lastName}</p>
-                            <p className="text-center text-xs tracking-widest">................................................................</p>
                         </div>
                     </>
                 )}
             </div>
             <Timetable events={filteredEvents} workingHours={workingHours} displayMode="teacher" />
             <div className="hidden print:block mt-16 text-sm font-serif">
-                <div className="flex justify-end">
+                <div className="flex justify-between items-end">
+                    <p>le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                     <div className="text-center">
-                        <p>le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                        <p className="mt-4 font-semibold">le directeur :</p>
-                        <p className="mt-12">........................................</p>
+                        <p className="mb-16">le directeur :</p>
+                        <p>{directorName}</p>
                     </div>
                 </div>
             </div>
