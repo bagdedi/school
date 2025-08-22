@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import type { Classe, Student, AttendanceData, SharedFilterState } from '../../types';
+import type { Classe, Student, AttendanceData, SharedFilterState, AttendanceStatus } from '../../types';
 import { ResetIcon } from '../icons/ResetIcon';
 import { UserMinusIcon } from '../icons/UserMinusIcon';
 import { ClockIcon } from '../icons/ClockIcon';
 import { ExclamationTriangleIcon } from '../icons/ExclamationTriangleIcon';
 import { ChartPieIcon } from '../icons/ChartPieIcon';
 import { mockEvents } from '../timetable/mockData';
+import { Modal } from '../common/Modal';
 
 // --- TYPE DEFINITIONS ---
 interface AttendanceAnalyticsPageProps {
@@ -89,7 +90,125 @@ const getDatesForPeriod = (period: PeriodType, customStart?: string, customEnd?:
   return { start, end };
 };
 
+
 // --- UI COMPONENTS ---
+
+// --- NEW DETAIL MODAL COMPONENT ---
+interface AttendanceDetailsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  student: Student;
+  incidentType: 'A' | 'R' | 'EX';
+  attendanceData: AttendanceData;
+  startDate: Date;
+  endDate: Date;
+}
+
+interface Incident {
+  date: string;
+  time: string;
+  subject: string;
+}
+
+const INCIDENT_DETAILS = {
+  'A': { title: 'Détail des Absences', icon: <UserMinusIcon className="text-red-500 h-5 w-5 mr-2"/> },
+  'R': { title: 'Détail des Retards', icon: <ClockIcon className="text-yellow-500 h-5 w-5 mr-2"/> },
+  'EX': { title: 'Détail des Exclusions', icon: <ExclamationTriangleIcon className="text-purple-500 h-5 w-5 mr-2"/> },
+};
+
+const AttendanceDetailsModal: React.FC<AttendanceDetailsModalProps> = ({
+  isOpen,
+  onClose,
+  student,
+  incidentType,
+  attendanceData,
+  startDate,
+  endDate,
+}) => {
+  const incidents = useMemo((): Incident[] => {
+    const results: Incident[] = [];
+    if (!student.classe) return [];
+
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        const dayIndex = d.getDay() === 0 ? 7 : d.getDay();
+        const studentDayAttendance = attendanceData[dateStr]?.[student.classe]?.[student.id];
+
+        if (studentDayAttendance) {
+            for (const timeLabel in studentDayAttendance) {
+                if (studentDayAttendance[timeLabel] === incidentType) {
+                    const [startHour] = timeLabel.split('-').map(Number);
+                    const subjectEvent = mockEvents.find(event =>
+                        event.day === dayIndex &&
+                        event.className.startsWith(student.classe!) &&
+                        Math.floor(timeToMinutes(event.startTime) / 60) <= startHour &&
+                        Math.ceil(timeToMinutes(event.endTime) / 60) > startHour
+                    );
+                    results.push({
+                        date: d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                        time: timeLabel,
+                        subject: subjectEvent ? subjectEvent.subject : 'Indisponible'
+                    });
+                }
+            }
+        }
+    }
+    return results.sort((a,b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
+  }, [student, incidentType, attendanceData, startDate, endDate]);
+  
+  const details = INCIDENT_DETAILS[incidentType];
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={details.title} size="2xl">
+        <div className="p-4">
+            <div className="flex items-center mb-4">
+                <img src={student.avatar} alt="" className="w-12 h-12 rounded-full mr-4" />
+                <div>
+                    <h3 className="text-lg font-bold text-gray-800">{`${student.firstName} ${student.lastName}`}</h3>
+                    <p className="text-sm text-gray-500">{`Classe: ${student.classe}`}</p>
+                </div>
+            </div>
+            {incidents.length > 0 ? (
+                <div className="overflow-y-auto max-h-[60vh] border rounded-lg">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-100 sticky top-0">
+                            <tr>
+                                <th className="py-2 px-4 font-semibold text-gray-600">Date</th>
+                                <th className="py-2 px-4 font-semibold text-gray-600 text-center">Horaire</th>
+                                <th className="py-2 px-4 font-semibold text-gray-600">Matière</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {incidents.map((incident, index) => (
+                                <tr key={index}>
+                                    <td className="py-2 px-4">{incident.date}</td>
+                                    <td className="py-2 px-4 text-center font-mono">{incident.time}</td>
+                                    <td className="py-2 px-4">{incident.subject}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="text-center py-8 bg-gray-50 rounded-md">
+                    <p className="text-gray-600">Aucun incident de ce type enregistré pour la période sélectionnée.</p>
+                </div>
+            )}
+
+            <div className="flex justify-end mt-6 pt-4 border-t">
+                <button
+                onClick={onClose}
+                className="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                Fermer
+                </button>
+            </div>
+        </div>
+    </Modal>
+  );
+};
+
+
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; color: string }> = ({ icon, title, value, color }) => (
   <div className={`bg-white p-6 rounded-xl shadow-md flex items-center space-x-4 border-l-4 ${color}`}>
     <div className="text-3xl">{icon}</div>
@@ -106,6 +225,10 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
   const [customStartDate, setCustomStartDate] = useState(formatDate(new Date()));
   const [customEndDate, setCustomEndDate] = useState(formatDate(new Date()));
   const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [dateRange, setDateRange] = useState<{ start: Date, end: Date } | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState<{ student: Student; incidentType: 'A' | 'R' | 'EX'; } | null>(null);
+
 
   const uniqueNiveaux = useMemo(() => [...new Set(classes.map(c => c.niveau))].sort(), [classes]);
   const availableSpecialites = useMemo(() => {
@@ -123,6 +246,8 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
       return;
     }
     const { start, end } = getDatesForPeriod(period, customStartDate, customEndDate);
+    setDateRange({ start, end });
+
     const studentsInClass = students.filter(s => s.classe === filters.classe);
     
     let totalAbsences = 0;
@@ -179,99 +304,131 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
     onResetFilters();
     setPeriod('week');
     setReportData(null);
+    setDateRange(null);
   }
+  
+  const handleOpenDetailsModal = (student: Student, incidentType: 'A' | 'R' | 'EX') => {
+    setModalData({ student, incidentType });
+    setIsDetailsModalOpen(true);
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800">Suivi des Présences</h1>
-        <p className="mt-1 text-gray-600">Analysez les statistiques d'absence et de retard par période.</p>
-      </div>
+    <>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Suivi des Présences</h1>
+          <p className="mt-1 text-gray-600">Analysez les statistiques d'absence et de retard par période.</p>
+        </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
-        <h2 className="text-xl font-semibold text-gray-700">Filtres du Rapport</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <select value={filters.niveau} onChange={(e) => onFilterChange('niveau', e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                <option value="">Sélectionnez un Niveau</option>
-                {uniqueNiveaux.map(level => <option key={level} value={level}>{level}</option>)}
-            </select>
-            <select value={filters.specialite} onChange={(e) => onFilterChange('specialite', e.target.value)} disabled={!filters.niveau} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
-                <option value="">Sélectionnez une Spécialité</option>
-                {availableSpecialites.map(spec => <option key={spec} value={spec}>{spec}</option>)}
-            </select>
-            <select value={filters.classe} onChange={(e) => onFilterChange('classe', e.target.value)} disabled={!filters.niveau || !filters.specialite} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
-                <option value="">Sélectionnez une Classe</option>
-                {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-            <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodType)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                <option value="day">Par jour</option>
-                <option value="week">Par semaine</option>
-                <option value="month">Par mois</option>
-                <option value="term">Par trimestre</option>
-                <option value="year">Annuelle</option>
-                <option value="custom">Période personnalisée</option>
-            </select>
-             {period === 'custom' && (
-                <>
-                <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
-                <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
-                </>
-             )}
-        </div>
-        <div className="flex justify-end space-x-3 pt-4">
-             <button onClick={handleReset} className="flex items-center bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors"> <ResetIcon className="mr-2 h-4 w-4" /> Réinitialiser </button>
-             <button onClick={handleGenerateReport} className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"> Générer le Rapport </button>
-        </div>
-      </div>
-
-      {reportData ? (
-        <div className="space-y-6 animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard icon={<UserMinusIcon className="text-red-500"/>} title="Total Absences" value={reportData.summary.totalAbsences.toString()} color="border-red-500" />
-            <StatCard icon={<ClockIcon className="text-yellow-500"/>} title="Total Retards" value={reportData.summary.totalTardies.toString()} color="border-yellow-500" />
-            <StatCard icon={<ExclamationTriangleIcon className="text-purple-500"/>} title="Total Exclusions" value={reportData.summary.totalExclusions.toString()} color="border-purple-500" />
-            <StatCard icon={<ChartPieIcon className="text-green-500"/>} title="Taux de Présence" value={`${reportData.summary.presenceRate.toFixed(1)}%`} color="border-green-500" />
+        <div className="bg-white p-6 rounded-xl shadow-md space-y-4">
+          <h2 className="text-xl font-semibold text-gray-700">Filtres du Rapport</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <select value={filters.niveau} onChange={(e) => onFilterChange('niveau', e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                  <option value="">Sélectionnez un Niveau</option>
+                  {uniqueNiveaux.map(level => <option key={level} value={level}>{level}</option>)}
+              </select>
+              <select value={filters.specialite} onChange={(e) => onFilterChange('specialite', e.target.value)} disabled={!filters.niveau} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
+                  <option value="">Sélectionnez une Spécialité</option>
+                  {availableSpecialites.map(spec => <option key={spec} value={spec}>{spec}</option>)}
+              </select>
+              <select value={filters.classe} onChange={(e) => onFilterChange('classe', e.target.value)} disabled={!filters.niveau || !filters.specialite} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
+                  <option value="">Sélectionnez une Classe</option>
+                  {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+              <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodType)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                  <option value="day">Par jour</option>
+                  <option value="week">Par semaine</option>
+                  <option value="month">Par mois</option>
+                  <option value="term">Par trimestre</option>
+                  <option value="year">Annuelle</option>
+                  <option value="custom">Période personnalisée</option>
+              </select>
+              {period === 'custom' && (
+                  <>
+                  <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
+                  <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
+                  </>
+              )}
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+              <button onClick={handleReset} className="flex items-center bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors"> <ResetIcon className="mr-2 h-4 w-4" /> Réinitialiser </button>
+              <button onClick={handleGenerateReport} className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"> Générer le Rapport </button>
+          </div>
+        </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-md">
-            <h3 className="text-xl font-semibold text-gray-700 mb-4">Détails par Étudiant</h3>
-            <div className="overflow-x-auto max-h-[60vh]">
-              <table className="w-full text-left">
-                <thead className="bg-gray-100 text-gray-600 uppercase text-sm sticky top-0">
-                  <tr>
-                    <th className="py-3 px-4 font-semibold">Étudiant</th>
-                    <th className="py-3 px-4 font-semibold text-center">Absences (A)</th>
-                    <th className="py-3 px-4 font-semibold text-center">Retards (R)</th>
-                    <th className="py-3 px-4 font-semibold text-center">Exclusions (EX)</th>
-                  </tr>
-                </thead>
-                <tbody className="text-gray-700">
-                  {reportData.studentStats.map(({ student, absences, tardies, exclusions }) => (
-                    <tr key={student.id} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="py-2 px-4">
-                        <div className="flex items-center">
-                          <img src={student.avatar} alt="" className="w-8 h-8 rounded-full mr-3" />
-                          <span>{`${student.firstName} ${student.lastName}`}</span>
-                        </div>
-                      </td>
-                      <td className="py-2 px-4 text-center font-bold text-red-600">{absences}</td>
-                      <td className="py-2 px-4 text-center font-bold text-yellow-600">{tardies}</td>
-                      <td className="py-2 px-4 text-center font-bold text-purple-600">{exclusions}</td>
+        {reportData ? (
+          <div className="space-y-6 animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard icon={<UserMinusIcon className="text-red-500"/>} title="Total Absences" value={reportData.summary.totalAbsences.toString()} color="border-red-500" />
+              <StatCard icon={<ClockIcon className="text-yellow-500"/>} title="Total Retards" value={reportData.summary.totalTardies.toString()} color="border-yellow-500" />
+              <StatCard icon={<ExclamationTriangleIcon className="text-purple-500"/>} title="Total Exclusions" value={reportData.summary.totalExclusions.toString()} color="border-purple-500" />
+              <StatCard icon={<ChartPieIcon className="text-green-500"/>} title="Taux de Présence" value={`${reportData.summary.presenceRate.toFixed(1)}%`} color="border-green-500" />
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <h3 className="text-xl font-semibold text-gray-700 mb-4">Détails par Étudiant</h3>
+              <div className="overflow-x-auto max-h-[60vh]">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-100 text-gray-600 uppercase text-sm sticky top-0">
+                    <tr>
+                      <th className="py-3 px-4 font-semibold">Étudiant</th>
+                      <th className="py-3 px-4 font-semibold text-center">Absences (A)</th>
+                      <th className="py-3 px-4 font-semibold text-center">Retards (R)</th>
+                      <th className="py-3 px-4 font-semibold text-center">Exclusions (EX)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-gray-700">
+                    {reportData.studentStats.map(({ student, absences, tardies, exclusions }) => (
+                      <tr key={student.id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <td className="py-2 px-4">
+                          <div className="flex items-center">
+                            <img src={student.avatar} alt="" className="w-8 h-8 rounded-full mr-3" />
+                            <span>{`${student.firstName} ${student.lastName}`}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 px-4 text-center font-bold text-red-600">
+                           {absences > 0 ? (
+                                <button onClick={() => handleOpenDetailsModal(student, 'A')} className="underline hover:text-red-800 transition-colors">{absences}</button>
+                            ) : ( absences )}
+                        </td>
+                        <td className="py-2 px-4 text-center font-bold text-yellow-600">
+                            {tardies > 0 ? (
+                                <button onClick={() => handleOpenDetailsModal(student, 'R')} className="underline hover:text-yellow-800 transition-colors">{tardies}</button>
+                            ) : ( tardies )}
+                        </td>
+                        <td className="py-2 px-4 text-center font-bold text-purple-600">
+                            {exclusions > 0 ? (
+                                <button onClick={() => handleOpenDetailsModal(student, 'EX')} className="underline hover:text-purple-800 transition-colors">{exclusions}</button>
+                            ) : ( exclusions )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500 mt-6">
-            <p className="font-semibold">Veuillez sélectionner les filtres et générer un rapport pour afficher les statistiques.</p>
-        </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500 mt-6">
+              <p className="font-semibold">Veuillez sélectionner les filtres et générer un rapport pour afficher les statistiques.</p>
+          </div>
+        )}
+      </div>
+
+      {isDetailsModalOpen && modalData && dateRange && (
+        <AttendanceDetailsModal
+            isOpen={isDetailsModalOpen}
+            onClose={() => setIsDetailsModalOpen(false)}
+            student={modalData.student}
+            incidentType={modalData.incidentType}
+            attendanceData={attendanceData}
+            startDate={dateRange.start}
+            endDate={dateRange.end}
+        />
       )}
-    </div>
+    </>
   );
 };
 export default AttendanceAnalyticsPage;

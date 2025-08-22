@@ -21,9 +21,41 @@ const getStatusStyles = (status: AttendanceStatus | null): string => {
     }
 };
 
+const abbreviateSubject = (subject: string): string => {
+  const abbreviations: { [key: string]: string } = {
+    'Arabe': 'Arabe',
+    'Français': 'Franç',
+    'Anglais': 'Angl',
+    'Histoire': 'Hist',
+    'Géographie': 'Géo',
+    'Pensée Islamique': 'P. Isl',
+    'Education Civile': 'Ed. Civ',
+    'Mathématiques': 'Maths',
+    'Physique': 'Phy',
+    'Sciences de la Vie et de la Terre': 'SVT',
+    'Technologie': 'Tech',
+    'Informatique': 'Info',
+    'Sport': 'Sport',
+    'Arts': 'Arts',
+    'Projet': 'Projet',
+    'Philosophie': 'Philo',
+    'Economie': 'Eco',
+    'Gestion': 'Gest',
+    'Algorithmique & Programmation': 'Algo/Prog',
+    'Systèmes & Réseaux': 'Sys/Rés',
+    'Bases de données': 'BDD',
+    'Génie Électrique': 'G. Elec',
+    'Génie Mécanique': 'G. Mec',
+    'Tech-Inf-comm (TIC)': 'TIC',
+    'Sciences Biologiques': 'Bio',
+  };
+  return abbreviations[subject] || subject;
+};
+
 // --- COMPONENTS ---
 
 interface AttendanceRegisterProps {
+  selectedDate: Date;
   classe: Classe;
   students: Student[];
   events: TimetableEvent[];
@@ -32,9 +64,8 @@ interface AttendanceRegisterProps {
   onAttendanceChange: (studentId: string, timeLabel: string, status: AttendanceStatus | null) => void;
 }
 
-const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ classe, students, events, workingHours, attendanceForClassToday, onAttendanceChange }) => {
-  const today = useMemo(() => new Date(), []);
-  const dayIndex = today.getDay() === 0 ? 7 : today.getDay(); // Sunday: 0 -> 7, Monday: 1, etc.
+const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ selectedDate, classe, students, events, workingHours, attendanceForClassToday, onAttendanceChange }) => {
+  const dayIndex = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
   
   const classStudents = useMemo(() => 
     students
@@ -51,60 +82,58 @@ const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ classe, student
   }, [daySchedule]);
 
   const timeSlots = useMemo(() => {
-    const todaysEvents = events
-      .filter(e => e.className.startsWith(classe.name) && e.day === dayIndex)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-
     if (!daySchedule || !daySchedule.isWorkingDay) {
-        return [];
+      return [];
     }
-
-    const slots = new Map<string, string>();
-
-    const addSlots = (start: string, end: string) => {
-        if (!start || !end) return;
-        const startHour = timeToMinutes(start) / 60;
-        const endHour = timeToMinutes(end) / 60;
-
-        for (let hour = Math.floor(startHour); hour < Math.ceil(endHour); hour++) {
-            const timeLabel = `${String(hour).padStart(2, '0')}-${String(hour + 1).padStart(2, '0')}`;
-            if (!slots.has(timeLabel)) {
-                slots.set(timeLabel, ''); // Initialize with empty subject
-            }
-        }
-    };
+    const { morningStart, morningEnd, afternoonStart, afternoonEnd } = daySchedule;
     
-    addSlots(daySchedule.morningStart, daySchedule.morningEnd);
-    addSlots(daySchedule.afternoonStart, daySchedule.afternoonEnd);
+    const slots: { timeLabel: string; subject: string }[] = [];
     
-    todaysEvents.forEach(event => {
+    const eventSubjectsByHour = new Map<number, string>();
+    events
+      .filter(e => e.className.startsWith(classe.name) && e.day === dayIndex)
+      .forEach(event => {
         const startHour = Math.floor(timeToMinutes(event.startTime) / 60);
         const endHour = Math.ceil(timeToMinutes(event.endTime) / 60);
-        for(let hour = startHour; hour < endHour; hour++) {
-            const timeLabel = `${String(hour).padStart(2, '0')}-${String(hour + 1).padStart(2, '0')}`;
-            if(slots.has(timeLabel)){
-                slots.set(timeLabel, event.subject);
-            }
+        for (let h = startHour; h < endHour; h++) {
+          eventSubjectsByHour.set(h, event.subject);
         }
     });
 
-    const sortedSlots = new Map([...slots.entries()].sort());
+    const addSlotsForPeriod = (start: string, end: string) => {
+        if (!start || !end) return;
+        const startHour = Math.floor(timeToMinutes(start) / 60);
+        const endHour = Math.ceil(timeToMinutes(end) / 60);
+        
+        for (let hour = startHour; hour < endHour; hour++) {
+            const timeLabel = `${String(hour).padStart(2, '0')}-${String(hour + 1).padStart(2, '0')}`;
+            slots.push({
+                timeLabel,
+                subject: eventSubjectsByHour.get(hour) || '',
+            });
+        }
+    };
+    
+    addSlotsForPeriod(morningStart, morningEnd);
+    addSlotsForPeriod(afternoonStart, afternoonEnd);
 
-    if (sortedSlots.size === 0) return [];
+    return slots;
+  }, [daySchedule, events, classe.name, dayIndex]);
 
-    return Array.from(sortedSlots.entries()).map(([timeLabel, subject]) => ({ timeLabel, subject }));
-  }, [events, classe, dayIndex, workingHours, daySchedule]);
 
-  const formattedDate = today.toLocaleDateString('fr-FR', {
+  const formattedDate = selectedDate.toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
   const handleCellClick = (studentId: string, timeLabel: string) => {
     const slot = timeSlots.find(s => s.timeLabel === timeLabel);
-    if (slot && !slot.subject) {
+    const isCourseSlot = slot && !!slot.subject;
+
+    if (!isCourseSlot) {
         toast.error("Impossible de marquer une présence pour une heure creuse.", { duration: 2000 });
         return;
     }
+
     const currentStatus = attendanceForClassToday[studentId]?.[timeLabel] || null;
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
@@ -122,7 +151,7 @@ const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ classe, student
   if (timeSlots.length === 0) {
     return (
        <div className="mt-8 pt-6 border-t animate-fade-in text-center text-gray-500">
-        <p>Aucun cours programmé pour la classe {classe.name} aujourd'hui ({formattedDate}).</p>
+        <p>Aucun horaire de travail ou cours n'est programmé pour la classe {classe.name} le {formattedDate}.</p>
       </div>
     );
   }
@@ -161,14 +190,14 @@ const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ classe, student
                 <td style={{ width: '256px', left: '56px' }} className="sticky z-10 p-2 border-b border-r-4 border-black truncate capitalize even:bg-white odd:bg-gray-50/70">{`${student.lastName} ${student.firstName}`}</td>
                 {timeSlots.map(({ timeLabel, subject }) => {
                   const status = attendanceForClassToday[student.id]?.[timeLabel] || null;
-                  const hasCourse = !!subject;
+                  const isCourseSlot = !!subject;
                   const slotEndHour = parseInt(timeLabel.split('-')[1], 10);
                   const isLastMorningSlot = morningEndHour !== null && slotEndHour === morningEndHour;
                   return (
-                    <td key={`${student.id}-${timeLabel}`} className={`p-0 border-b ${isLastMorningSlot ? 'border-r-4 border-gray-400' : 'border-r border-gray-300'}`}>
+                    <td key={`${student.id}-${timeLabel}`} className={`p-0 border-b ${isLastMorningSlot ? 'border-r-4 border-black' : 'border-r border-black'}`}>
                       <button 
                         onClick={() => handleCellClick(student.id, timeLabel)}
-                        className={`w-full h-10 transition-colors text-base ${getStatusStyles(status)} ${!hasCourse && !status ? 'bg-slate-100 cursor-help' : ''}`}
+                        className={`w-full h-10 transition-colors text-base ${getStatusStyles(status)} ${!isCourseSlot && !status ? 'bg-sky-100 cursor-help' : ''}`}
                         aria-label={`Statut pour ${student.lastName} à ${timeLabel}`}
                       >
                         {status}
@@ -180,8 +209,8 @@ const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ classe, student
             ))}
           </tbody>
            <tfoot className="text-xs font-semibold bg-gray-50 text-center">
-             <tr>
-                <td className="sticky left-0 bg-gray-50 z-20 p-1 border-t-2 border-r-2 border-black h-28"></td>
+             <tr className="divide-x-2 divide-black h-28">
+                <td className="sticky left-0 bg-gray-50 z-20 p-1 border-t-2 border-r-2 border-black"></td>
                 <td className="sticky bg-gray-50 z-20 p-1 border-t-2 border-r-4 border-black" style={{ left: '56px' }}></td>
                 {timeSlots.map(({ timeLabel, subject }) => {
                   const slotEndHour = parseInt(timeLabel.split('-')[1], 10);
@@ -189,7 +218,7 @@ const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ classe, student
                   return (
                     <td key={timeLabel} className={`p-1 border-t-2 align-middle ${isLastMorningSlot ? 'border-r-4 border-black' : 'border-r border-black'}`}>
                         <div className="flex items-center justify-center h-full">
-                            <span className="transform -rotate-90 whitespace-nowrap">{subject}</span>
+                            <span className="transform -rotate-90 whitespace-nowrap">{abbreviateSubject(subject)}</span>
                         </div>
                     </td>
                   );
@@ -212,6 +241,8 @@ interface PresencePunishmentPageProps {
 }
 
 const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes, students, workingHours, attendanceData, setAttendanceData }) => {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const levels = useMemo(() => {
     const uniqueLevels = [...new Set(classes.map(c => c.niveau))];
     return uniqueLevels.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -220,7 +251,7 @@ const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes
   const [activeLevel, setActiveLevel] = useState<string | null>(levels.length > 0 ? levels[0] : null);
   const [selectedClass, setSelectedClass] = useState<Classe | null>(null);
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const selectedDateStr = useMemo(() => selectedDate.toISOString().split('T')[0], [selectedDate]);
 
   const classesForActiveLevel = useMemo(() => {
     if (!activeLevel) return [];
@@ -235,21 +266,21 @@ const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes
 
   const attendanceForClassToday = useMemo(() => {
     if (!selectedClass) return {};
-    return attendanceData[todayStr]?.[selectedClass.name] || {};
-  }, [attendanceData, todayStr, selectedClass]);
+    return attendanceData[selectedDateStr]?.[selectedClass.name] || {};
+  }, [attendanceData, selectedDateStr, selectedClass]);
   
   const handleAttendanceChange = (studentId: string, timeLabel: string, status: AttendanceStatus | null) => {
       if (!selectedClass) return;
       const className = selectedClass.name;
       
       setAttendanceData(prev => {
-          const prevDateData = prev[todayStr] || {};
+          const prevDateData = prev[selectedDateStr] || {};
           const prevClassData = prevDateData[className] || {};
           const prevStudentData = prevClassData[studentId] || {};
 
           return {
               ...prev,
-              [todayStr]: {
+              [selectedDateStr]: {
                   ...prevDateData,
                   [className]: {
                       ...prevClassData,
@@ -263,12 +294,57 @@ const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes
       });
   };
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const dateValue = e.target.value;
+      if (dateValue) {
+          const dateParts = dateValue.split('-').map(Number);
+          // Handles timezone issues by creating date with local timezone's midnight
+          setSelectedDate(new Date(dateParts[0], dateParts[1] - 1, dateParts[2]));
+      }
+  };
+
+  const handlePrevDay = () => {
+      setSelectedDate(prevDate => {
+          const newDate = new Date(prevDate);
+          newDate.setDate(newDate.getDate() - 1);
+          return newDate;
+      });
+  };
+
+  const handleNextDay = () => {
+      setSelectedDate(prevDate => {
+          const newDate = new Date(prevDate);
+          newDate.setDate(newDate.getDate() + 1);
+          return newDate;
+      });
+  };
+
   return (
     <div className="bg-white p-8 rounded-xl shadow-md space-y-8">
       <Toaster position="top-center" />
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800">Suivi Présences et Punitions</h1>
-        <p className="mt-1 text-gray-600">Sélectionnez un niveau, puis une classe pour afficher le registre d'appel.</p>
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-gray-800">Suivi Présences et Punitions</h1>
+            <p className="mt-1 text-gray-600">Sélectionnez une date, un niveau, puis une classe pour afficher le registre d'appel.</p>
+        </div>
+        <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg border">
+            <button onClick={handlePrevDay} className="p-2 bg-white text-gray-700 rounded-md hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm" aria-label="Jour précédent">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+            </button>
+            <input 
+              type="date" 
+              value={selectedDateStr}
+              onChange={handleDateChange}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm"
+            />
+            <button onClick={handleNextDay} className="p-2 bg-white text-gray-700 rounded-md hover:bg-gray-100 transition-colors border border-gray-300 shadow-sm" aria-label="Jour suivant">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+            </button>
+        </div>
       </div>
 
       {levels.length > 0 ? (
@@ -330,7 +406,8 @@ const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes
       
       {selectedClass ? (
         <AttendanceRegister 
-            key={selectedClass.id}
+            key={`${selectedClass.id}-${selectedDateStr}`}
+            selectedDate={selectedDate}
             classe={selectedClass}
             students={students}
             events={mockEvents}
