@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import type { Classe, Student, AttendanceData, SharedFilterState, AttendanceStatus } from '../../types';
 import { ResetIcon } from '../icons/ResetIcon';
 import { UserMinusIcon } from '../icons/UserMinusIcon';
@@ -6,7 +6,6 @@ import { ClockIcon } from '../icons/ClockIcon';
 import { ExclamationTriangleIcon } from '../icons/ExclamationTriangleIcon';
 import { ChartPieIcon } from '../icons/ChartPieIcon';
 import { mockEvents } from '../timetable/mockData';
-import { Modal } from '../common/Modal';
 
 // --- TYPE DEFINITIONS ---
 interface AttendanceAnalyticsPageProps {
@@ -34,6 +33,15 @@ interface ReportData {
 }
 
 type PeriodType = 'day' | 'week' | 'month' | 'term' | 'year' | 'custom';
+type ChartIncidentType = 'absences' | 'tardies' | 'exclusions' | 'total';
+
+type IncidentDetail = {
+  date: string;
+  time: string;
+  subject: string;
+  teacher: string;
+};
+
 
 // --- HELPER FUNCTIONS ---
 const formatDate = (date: Date): string => date.toISOString().split('T')[0];
@@ -90,121 +98,108 @@ const getDatesForPeriod = (period: PeriodType, customStart?: string, customEnd?:
   return { start, end };
 };
 
-
-// --- UI COMPONENTS ---
-
-// --- NEW DETAIL MODAL COMPONENT ---
-interface AttendanceDetailsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  student: Student;
-  incidentType: 'A' | 'R' | 'EX';
-  attendanceData: AttendanceData;
-  startDate: Date;
-  endDate: Date;
-}
-
-interface Incident {
-  date: string;
-  time: string;
-  subject: string;
-}
-
-const INCIDENT_DETAILS = {
-  'A': { title: 'Détail des Absences', icon: <UserMinusIcon className="text-red-500 h-5 w-5 mr-2"/> },
-  'R': { title: 'Détail des Retards', icon: <ClockIcon className="text-yellow-500 h-5 w-5 mr-2"/> },
-  'EX': { title: 'Détail des Exclusions', icon: <ExclamationTriangleIcon className="text-purple-500 h-5 w-5 mr-2"/> },
+const abbreviateSubject = (subject: string): string => {
+  const abbreviations: { [key: string]: string } = {
+    'Arabe': 'Arabe', 'Français': 'Franç', 'Anglais': 'Angl', 'Histoire': 'Hist', 'Géographie': 'Géo',
+    'Pensée Islamique': 'P. Isl', 'Education Civile': 'Ed. Civ', 'Mathématiques': 'Maths', 'Physique': 'Phy',
+    'Sciences de la Vie et de la Terre': 'SVT', 'Technologie': 'Tech', 'Informatique': 'Info', 'Sport': 'Sport',
+    'Arts': 'Arts', 'Projet': 'Projet', 'Philosophie': 'Philo', 'Economie': 'Eco', 'Gestion': 'Gest',
+    'Algorithmique & Programmation': 'Algo/Prog', 'Systèmes & Réseaux': 'Sys/Rés', 'Bases de données': 'BDD',
+    'Génie Électrique': 'G. Elec', 'Génie Mécanique': 'G. Mec', 'Tech-Inf-comm (TIC)': 'TIC',
+    'Sciences Biologiques': 'Bio',
+  };
+  return abbreviations[subject] || subject;
 };
 
-const AttendanceDetailsModal: React.FC<AttendanceDetailsModalProps> = ({
-  isOpen,
-  onClose,
-  student,
-  incidentType,
-  attendanceData,
-  startDate,
-  endDate,
-}) => {
-  const incidents = useMemo((): Incident[] => {
-    const results: Incident[] = [];
-    if (!student.classe) return [];
-
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = formatDate(d);
-        const dayIndex = d.getDay() === 0 ? 7 : d.getDay();
-        const studentDayAttendance = attendanceData[dateStr]?.[student.classe]?.[student.id];
-
-        if (studentDayAttendance) {
-            for (const timeLabel in studentDayAttendance) {
-                if (studentDayAttendance[timeLabel] === incidentType) {
-                    const [startHour] = timeLabel.split('-').map(Number);
-                    const subjectEvent = mockEvents.find(event =>
-                        event.day === dayIndex &&
-                        event.className.startsWith(student.classe!) &&
-                        Math.floor(timeToMinutes(event.startTime) / 60) <= startHour &&
-                        Math.ceil(timeToMinutes(event.endTime) / 60) > startHour
-                    );
-                    results.push({
-                        date: d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-                        time: timeLabel,
-                        subject: subjectEvent ? subjectEvent.subject : 'Indisponible'
-                    });
-                }
-            }
-        }
+// Color generation logic, mirrors what's in mockData.ts
+const subjectColorsForChart = [
+  'bg-red-400', 'bg-orange-400', 'bg-amber-400', 'bg-yellow-400', 'bg-lime-400', 
+  'bg-green-400', 'bg-emerald-400', 'bg-teal-400', 'bg-cyan-400', 'bg-sky-400',
+  'bg-blue-400', 'bg-indigo-400', 'bg-violet-400', 'bg-purple-400', 'bg-fuchsia-400', 
+  'bg-pink-400', 'bg-rose-400'
+];
+let colorIndex = 0;
+const subjectColorMap: { [key: string]: string } = {};
+const getSubjectColorForChart = (subject: string): string => {
+    if (!subjectColorMap[subject]) {
+        subjectColorMap[subject] = subjectColorsForChart[colorIndex % subjectColorsForChart.length];
+        colorIndex++;
     }
-    return results.sort((a,b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
-  }, [student, incidentType, attendanceData, startDate, endDate]);
+    return subjectColorMap[subject];
+};
+
+// --- UI COMPONENTS ---
+interface BarChartProps {
+  data: { name: string; value: number; color: string; fullName: string; teachers: string[] }[];
+}
+
+const BarChart: React.FC<BarChartProps> = ({ data }) => {
+  const maxValue = Math.max(...data.map(item => item.value), 0);
+  if (maxValue === 0) {
+    return (
+      <div className="flex items-center justify-center h-72 text-gray-500">
+        Aucune donnée d'incident pour cette sélection.
+      </div>
+    );
+  }
+
+  const numTicks = 5;
+  let tickIncrement = Math.ceil(maxValue / numTicks);
+  const pow10 = Math.pow(10, Math.floor(Math.log10(tickIncrement)));
+  const rel = tickIncrement / pow10;
+  if (rel > 5) tickIncrement = 10 * pow10;
+  else if (rel > 2) tickIncrement = 5 * pow10;
+  else if (rel > 1) tickIncrement = 2 * pow10;
+  else tickIncrement = 1 * pow10;
   
-  const details = INCIDENT_DETAILS[incidentType];
+  const yAxisMax = tickIncrement * numTicks;
+  const yAxisLabels = Array.from({ length: numTicks + 1 }, (_, i) => i * tickIncrement);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={details.title} size="2xl">
-        <div className="p-4">
-            <div className="flex items-center mb-4">
-                <img src={student.avatar} alt="" className="w-12 h-12 rounded-full mr-4" />
-                <div>
-                    <h3 className="text-lg font-bold text-gray-800">{`${student.firstName} ${student.lastName}`}</h3>
-                    <p className="text-sm text-gray-500">{`Classe: ${student.classe}`}</p>
-                </div>
-            </div>
-            {incidents.length > 0 ? (
-                <div className="overflow-y-auto max-h-[60vh] border rounded-lg">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-100 sticky top-0">
-                            <tr>
-                                <th className="py-2 px-4 font-semibold text-gray-600">Date</th>
-                                <th className="py-2 px-4 font-semibold text-gray-600 text-center">Horaire</th>
-                                <th className="py-2 px-4 font-semibold text-gray-600">Matière</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {incidents.map((incident, index) => (
-                                <tr key={index}>
-                                    <td className="py-2 px-4">{incident.date}</td>
-                                    <td className="py-2 px-4 text-center font-mono">{incident.time}</td>
-                                    <td className="py-2 px-4">{incident.subject}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-md">
-                    <p className="text-gray-600">Aucun incident de ce type enregistré pour la période sélectionnée.</p>
-                </div>
-            )}
+    <div className="w-full h-72 flex p-4">
+      {/* Y-Axis Labels */}
+      <div className="flex flex-col justify-between text-right text-xs text-gray-500 pr-2 pb-6">
+        {yAxisLabels.slice().reverse().map(label => <div key={label}>{label}</div>)}
+      </div>
 
-            <div className="flex justify-end mt-6 pt-4 border-t">
-                <button
-                onClick={onClose}
-                className="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                Fermer
-                </button>
-            </div>
+      <div className="flex-1 flex flex-col">
+        {/* Main chart content with bars and grid lines */}
+        <div className="flex-1 relative border-l border-gray-300">
+          {/* Grid lines */}
+          <div className="absolute inset-0 flex flex-col justify-between">
+            {yAxisLabels.map((_, index) => (
+              <div key={index} className={`w-full border-t ${index === yAxisLabels.length - 1 ? 'border-transparent' : 'border-dashed border-gray-200'}`}></div>
+            ))}
+          </div>
+          {/* Bars */}
+          <div className="absolute inset-0 flex items-end space-x-4 px-2">
+            {data.map(item => (
+              <div
+                key={item.fullName}
+                className="flex-1 flex flex-col items-center justify-end h-full relative z-10"
+                title={`${item.fullName}\nEnseignant(s): ${item.teachers.join(', ')}`}
+              >
+                <div className="text-sm font-semibold text-gray-700">{item.value}</div>
+                <div
+                  className={`w-full rounded-t-md transition-all duration-300 ${item.color}`}
+                  style={{ height: `${(item.value / yAxisMax) * 100}%` }}
+                ></div>
+              </div>
+            ))}
+          </div>
         </div>
-    </Modal>
+        {/* X-Axis line */}
+        <div className="border-t border-gray-300"></div>
+        {/* X-Axis Labels */}
+        <div className="flex items-start space-x-4 px-2 h-6 pt-1">
+          {data.map(item => (
+            <div key={item.fullName} className="flex-1 text-center text-xs text-gray-500 truncate" title={item.fullName}>
+              {item.name}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -219,6 +214,86 @@ const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; 
   </div>
 );
 
+interface ExpandedStudentDetailsProps {
+  student: Student;
+  startDate: Date;
+  endDate: Date;
+  attendanceData: AttendanceData;
+}
+
+const ExpandedStudentDetails: React.FC<ExpandedStudentDetailsProps> = ({ student, startDate, endDate, attendanceData }) => {
+    const [chartType, setChartType] = useState<ChartIncidentType>('total');
+  
+    const studentChartData = useMemo(() => {
+      if (!student.id || !startDate || !endDate || !student.classe) return [];
+  
+      const incidentsBySubject: { [subject: string]: { absences: number, tardies: number, exclusions: number, teachers: Set<string> } } = {};
+  
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dateStr = formatDate(d);
+          const dayIndex = d.getDay() === 0 ? 7 : d.getDay();
+          const studentAttendanceForDay = attendanceData[dateStr]?.[student.classe]?.[student.id];
+  
+          if (studentAttendanceForDay) {
+              for (const timeLabel in studentAttendanceForDay) {
+                  const status = studentAttendanceForDay[timeLabel];
+                  if (status) {
+                      const [startHour] = timeLabel.split('-').map(Number);
+                      const subjectEvent = mockEvents.find(event =>
+                          event.day === dayIndex &&
+                          event.className.startsWith(student.classe!) &&
+                          Math.floor(timeToMinutes(event.startTime) / 60) <= startHour &&
+                          Math.ceil(timeToMinutes(event.endTime) / 60) > startHour
+                      );
+                      if (subjectEvent) {
+                          const subject = subjectEvent.subject;
+                          if (!incidentsBySubject[subject]) {
+                              incidentsBySubject[subject] = { absences: 0, tardies: 0, exclusions: 0, teachers: new Set() };
+                          }
+                          incidentsBySubject[subject].teachers.add(subjectEvent.teacher);
+                          if (status === 'A') incidentsBySubject[subject].absences++;
+                          if (status === 'R') incidentsBySubject[subject].tardies++;
+                          if (status === 'EX') incidentsBySubject[subject].exclusions++;
+                      }
+                  }
+              }
+          }
+      }
+  
+      return Object.entries(incidentsBySubject).map(([subject, counts]) => {
+          let value = 0;
+          switch (chartType) {
+              case 'absences': value = counts.absences; break;
+              case 'tardies': value = counts.tardies; break;
+              case 'exclusions': value = counts.exclusions; break;
+              case 'total': value = counts.absences + counts.tardies + counts.exclusions; break;
+          }
+          return { 
+            name: abbreviateSubject(subject), 
+            value,
+            color: getSubjectColorForChart(subject),
+            fullName: subject,
+            teachers: Array.from(counts.teachers),
+          };
+      }).filter(item => item.value > 0).sort((a,b) => b.value - a.value);
+  
+    }, [student, startDate, endDate, attendanceData, chartType]);
+  
+    return (
+      <div className="bg-gray-50 p-4 border-t-2 border-indigo-200">
+        <h3 className="text-lg font-semibold text-gray-700 mb-2 text-center">Analyse des incidents par matière pour {student.firstName} {student.lastName}</h3>
+        <div className="flex items-center justify-center space-x-1 mb-4 p-1 bg-gray-100 rounded-lg max-w-sm mx-auto">
+            <button onClick={() => setChartType('total')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'total' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:bg-gray-200'}`}>Total</button>
+            <button onClick={() => setChartType('absences')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'absences' ? 'bg-white shadow text-red-600' : 'text-gray-500 hover:bg-gray-200'}`}>Absences</button>
+            <button onClick={() => setChartType('tardies')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'tardies' ? 'bg-white shadow text-yellow-600' : 'text-gray-500 hover:bg-gray-200'}`}>Retards</button>
+            <button onClick={() => setChartType('exclusions')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'exclusions' ? 'bg-white shadow text-purple-600' : 'text-gray-500 hover:bg-gray-200'}`}>Exclusions</button>
+        </div>
+        <BarChart data={studentChartData} />
+      </div>
+    );
+};
+
+
 // --- MAIN COMPONENT ---
 const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ classes, students, attendanceData, filters, onFilterChange, onResetFilters }) => {
   const [period, setPeriod] = useState<PeriodType>('week');
@@ -226,8 +301,79 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
   const [customEndDate, setCustomEndDate] = useState(formatDate(new Date()));
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [dateRange, setDateRange] = useState<{ start: Date, end: Date } | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [modalData, setModalData] = useState<{ student: Student; incidentType: 'A' | 'R' | 'EX'; } | null>(null);
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
+  const [chartType, setChartType] = useState<ChartIncidentType>('total');
+  const [popover, setPopover] = useState<{
+    content: IncidentDetail[];
+    type: AttendanceStatus;
+    position: { top: number; left: number };
+  } | null>(null);
+  const popoverTimeoutRef = useRef<number | null>(null);
+
+  const getIncidentsForStudent = (studentId: string, type: AttendanceStatus): IncidentDetail[] => {
+    if (!dateRange || !filters.classe) return [];
+    const incidents: IncidentDetail[] = [];
+    
+    for (let d = new Date(dateRange.start); d <= dateRange.end; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        const dayIndex = d.getDay() === 0 ? 7 : d.getDay();
+        const studentAttendanceForDay = attendanceData[dateStr]?.[filters.classe]?.[studentId];
+
+        if (studentAttendanceForDay) {
+            for (const timeLabel in studentAttendanceForDay) {
+                if (studentAttendanceForDay[timeLabel] === type) {
+                    const [startHour] = timeLabel.split('-').map(Number);
+                    const event = mockEvents.find(e =>
+                        e.day === dayIndex &&
+                        e.className.startsWith(filters.classe!) &&
+                        Math.floor(timeToMinutes(e.startTime) / 60) <= startHour &&
+                        Math.ceil(timeToMinutes(e.endTime) / 60) > startHour
+                    );
+                    if (event) {
+                        incidents.push({
+                            date: d.toLocaleDateString('fr-FR'),
+                            time: timeLabel,
+                            subject: event.subject,
+                            teacher: event.teacher,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    return incidents.sort((a, b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
+  };
+
+  const handleShowPopover = (e: React.MouseEvent, studentId: string, type: AttendanceStatus, count: number) => {
+    if (popoverTimeoutRef.current) clearTimeout(popoverTimeoutRef.current);
+    if (count === 0) return;
+
+    const incidents = getIncidentsForStudent(studentId, type);
+    if (incidents.length === 0) return;
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const popoverWidth = 320; // max-w-sm
+    let left = rect.left + window.scrollX;
+    if (left + popoverWidth > window.innerWidth) {
+        left = rect.right + window.scrollX - popoverWidth;
+    }
+    
+    setPopover({
+        content: incidents,
+        type: type,
+        position: { top: rect.bottom + window.scrollY + 5, left: left },
+    });
+  };
+
+  const handleHidePopover = () => {
+      popoverTimeoutRef.current = window.setTimeout(() => {
+          setPopover(null);
+      }, 300);
+  };
+
+  const handlePopoverAreaEnter = () => {
+      if (popoverTimeoutRef.current) clearTimeout(popoverTimeoutRef.current);
+  };
 
 
   const uniqueNiveaux = useMemo(() => [...new Set(classes.map(c => c.niveau))].sort(), [classes]);
@@ -300,17 +446,71 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
     });
   };
 
+  const chartData = useMemo(() => {
+    if (!reportData || !dateRange || !filters.classe) return [];
+
+    const incidentsBySubject: { [subject: string]: { absences: number, tardies: number, exclusions: number, teachers: Set<string> } } = {};
+
+    for (let d = new Date(dateRange.start); d <= dateRange.end; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        const dayIndex = d.getDay() === 0 ? 7 : d.getDay();
+        const classAttendanceForDay = attendanceData[dateStr]?.[filters.classe];
+
+        if (classAttendanceForDay) {
+            for (const studentId in classAttendanceForDay) {
+                const studentAttendance = classAttendanceForDay[studentId];
+                for (const timeLabel in studentAttendance) {
+                    const status = studentAttendance[timeLabel];
+                    if (status) {
+                        const [startHour] = timeLabel.split('-').map(Number);
+                        const subjectEvent = mockEvents.find(event =>
+                            event.day === dayIndex &&
+                            event.className.startsWith(filters.classe!) &&
+                            Math.floor(timeToMinutes(event.startTime) / 60) <= startHour &&
+                            Math.ceil(timeToMinutes(event.endTime) / 60) > startHour
+                        );
+                        if (subjectEvent) {
+                            const subject = subjectEvent.subject;
+                            if (!incidentsBySubject[subject]) {
+                                incidentsBySubject[subject] = { absences: 0, tardies: 0, exclusions: 0, teachers: new Set() };
+                            }
+                            incidentsBySubject[subject].teachers.add(subjectEvent.teacher);
+                            if (status === 'A') incidentsBySubject[subject].absences++;
+                            if (status === 'R') incidentsBySubject[subject].tardies++;
+                            if (status === 'EX') incidentsBySubject[subject].exclusions++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return Object.entries(incidentsBySubject).map(([subject, counts]) => {
+        let value = 0;
+        switch (chartType) {
+            case 'absences': value = counts.absences; break;
+            case 'tardies': value = counts.tardies; break;
+            case 'exclusions': value = counts.exclusions; break;
+            case 'total': value = counts.absences + counts.tardies + counts.exclusions; break;
+        }
+        return { 
+          name: abbreviateSubject(subject), 
+          value,
+          color: getSubjectColorForChart(subject),
+          fullName: subject,
+          teachers: Array.from(counts.teachers),
+        };
+    }).filter(item => item.value > 0).sort((a,b) => b.value - a.value);
+
+  }, [reportData, dateRange, filters.classe, attendanceData, chartType]);
+  
+
   const handleReset = () => {
     onResetFilters();
     setPeriod('week');
     setReportData(null);
     setDateRange(null);
   }
-  
-  const handleOpenDetailsModal = (student: Student, incidentType: 'A' | 'R' | 'EX') => {
-    setModalData({ student, incidentType });
-    setIsDetailsModalOpen(true);
-  };
 
   return (
     <>
@@ -368,6 +568,18 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-md">
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Analyse des Incidents par Matière</h3>
+              <div className="flex items-center justify-center space-x-1 mb-4 p-1 bg-gray-100 rounded-lg">
+                <button onClick={() => setChartType('total')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'total' ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:bg-gray-200'}`}>Total</button>
+                <button onClick={() => setChartType('absences')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'absences' ? 'bg-white shadow text-red-600' : 'text-gray-500 hover:bg-gray-200'}`}>Absences</button>
+                <button onClick={() => setChartType('tardies')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'tardies' ? 'bg-white shadow text-yellow-600' : 'text-gray-500 hover:bg-gray-200'}`}>Retards</button>
+                <button onClick={() => setChartType('exclusions')} className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${chartType === 'exclusions' ? 'bg-white shadow text-purple-600' : 'text-gray-500 hover:bg-gray-200'}`}>Exclusions</button>
+              </div>
+              <BarChart data={chartData} />
+            </div>
+
+
+            <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="text-xl font-semibold text-gray-700 mb-4">Détails par Étudiant</h3>
               <div className="overflow-x-auto max-h-[60vh]">
                 <table className="w-full text-left">
@@ -377,33 +589,62 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
                       <th className="py-3 px-4 font-semibold text-center">Absences (A)</th>
                       <th className="py-3 px-4 font-semibold text-center">Retards (R)</th>
                       <th className="py-3 px-4 font-semibold text-center">Exclusions (EX)</th>
+                      <th className="py-3 px-4 font-semibold text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="text-gray-700">
                     {reportData.studentStats.map(({ student, absences, tardies, exclusions }) => (
-                      <tr key={student.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="py-2 px-4">
-                          <div className="flex items-center">
-                            <img src={student.avatar} alt="" className="w-8 h-8 rounded-full mr-3" />
-                            <span>{`${student.firstName} ${student.lastName}`}</span>
-                          </div>
-                        </td>
-                        <td className="py-2 px-4 text-center font-bold text-red-600">
-                           {absences > 0 ? (
-                                <button onClick={() => handleOpenDetailsModal(student, 'A')} className="underline hover:text-red-800 transition-colors">{absences}</button>
-                            ) : ( absences )}
-                        </td>
-                        <td className="py-2 px-4 text-center font-bold text-yellow-600">
-                            {tardies > 0 ? (
-                                <button onClick={() => handleOpenDetailsModal(student, 'R')} className="underline hover:text-yellow-800 transition-colors">{tardies}</button>
-                            ) : ( tardies )}
-                        </td>
-                        <td className="py-2 px-4 text-center font-bold text-purple-600">
-                            {exclusions > 0 ? (
-                                <button onClick={() => handleOpenDetailsModal(student, 'EX')} className="underline hover:text-purple-800 transition-colors">{exclusions}</button>
-                            ) : ( exclusions )}
-                        </td>
-                      </tr>
+                       <React.Fragment key={student.id}>
+                        <tr className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="py-2 px-4">
+                            <div className="flex items-center">
+                              <img src={student.avatar} alt="" className="w-8 h-8 rounded-full mr-3" />
+                              <span>{`${student.firstName} ${student.lastName}`}</span>
+                            </div>
+                          </td>
+                          <td
+                            className="py-2 px-4 text-center font-bold text-red-600 cursor-pointer"
+                            onMouseEnter={(e) => handleShowPopover(e, student.id, 'A', absences)}
+                            onMouseLeave={handleHidePopover}
+                          >
+                            {absences}
+                          </td>
+                          <td
+                            className="py-2 px-4 text-center font-bold text-yellow-600 cursor-pointer"
+                            onMouseEnter={(e) => handleShowPopover(e, student.id, 'R', tardies)}
+                            onMouseLeave={handleHidePopover}
+                          >
+                              {tardies}
+                          </td>
+                          <td
+                            className="py-2 px-4 text-center font-bold text-purple-600 cursor-pointer"
+                            onMouseEnter={(e) => handleShowPopover(e, student.id, 'EX', exclusions)}
+                            onMouseLeave={handleHidePopover}
+                          >
+                              {exclusions}
+                          </td>
+                          <td className="py-2 px-4 text-center">
+                            <button
+                                onClick={() => setExpandedStudentId(prevId => prevId === student.id ? null : student.id)}
+                                className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold"
+                            >
+                                {expandedStudentId === student.id ? 'Voir moins' : 'Voir plus'}
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedStudentId === student.id && dateRange && (
+                            <tr className="bg-gray-100">
+                                <td colSpan={5}>
+                                    <ExpandedStudentDetails
+                                        student={student}
+                                        startDate={dateRange.start}
+                                        endDate={dateRange.end}
+                                        attendanceData={attendanceData}
+                                    />
+                                </td>
+                            </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -416,17 +657,34 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
           </div>
         )}
       </div>
-
-      {isDetailsModalOpen && modalData && dateRange && (
-        <AttendanceDetailsModal
-            isOpen={isDetailsModalOpen}
-            onClose={() => setIsDetailsModalOpen(false)}
-            student={modalData.student}
-            incidentType={modalData.incidentType}
-            attendanceData={attendanceData}
-            startDate={dateRange.start}
-            endDate={dateRange.end}
-        />
+      {popover && (
+        <div
+          style={{ top: `${popover.position.top}px`, left: `${popover.position.left}px`, minWidth: '320px' }}
+          className="absolute z-50 bg-white rounded-lg shadow-xl border p-3 max-w-sm w-full animate-fade-in text-sm"
+          onMouseEnter={handlePopoverAreaEnter}
+          onMouseLeave={handleHidePopover}
+        >
+          <h4 className="font-bold mb-2 border-b pb-1 text-gray-800">
+              {popover.type === 'A' && 'Détail des Absences'}
+              {popover.type === 'R' && 'Détail des Retards'}
+              {popover.type === 'EX' && 'Détail des Exclusions'}
+          </h4>
+          <div className="max-h-60 overflow-y-auto">
+              {popover.content.length > 0 ? (
+                  <ul className="space-y-2">
+                      {popover.content.map((incident, index) => (
+                          <li key={index} className="p-2 bg-gray-50 rounded-md border border-gray-200">
+                              <div className="font-semibold text-gray-900">{incident.date} <span className="font-normal text-gray-500">@ {incident.time}</span></div>
+                              <div className="text-gray-600">Matière: {incident.subject}</div>
+                              <div className="text-gray-600">Enseignant: {incident.teacher}</div>
+                          </li>
+                      ))}
+                  </ul>
+              ) : (
+                  <p className="text-gray-500 text-center py-4">Aucun incident à afficher.</p>
+              )}
+          </div>
+        </div>
       )}
     </>
   );
