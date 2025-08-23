@@ -29,9 +29,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const fetchTranslations = async () => {
       try {
-        // Use fetch with absolute paths from the root to ensure they are found.
-        const frResponse = await fetch('/locales/fr.json');
-        const enResponse = await fetch('/locales/en.json');
+        // Use relative paths for robustness.
+        const frResponse = await fetch('./locales/fr.json');
+        const enResponse = await fetch('./locales/en.json');
 
         if (!frResponse.ok || !enResponse.ok) {
             throw new Error(`Failed to fetch translation files: ${frResponse.statusText}, ${enResponse.statusText}`);
@@ -63,25 +63,26 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (loading) return key;
 
     const keys = key.split('.');
-    let result: any = translations[locale];
-    for (const k of keys) {
-      if (result && typeof result === 'object' && k in result) {
-        result = result[k];
-      } else {
-        // Fallback to English if key not found in current locale
-        result = translations['en'];
-        for (const k_en of keys) {
-             if (result && typeof result === 'object' && k_en in result) {
-                result = result[k_en];
-             } else {
-                return key; // Return the key if not found in English either
-             }
+    
+    const findTranslation = (localeToTry: Locale) => {
+        let result: any = translations[localeToTry];
+        for (const k of keys) {
+            if (result && typeof result === 'object' && k in result) {
+                result = result[k];
+            } else {
+                return null; // Not found
+            }
         }
-        break;
-      }
+        return result;
+    };
+
+    let result = findTranslation(locale);
+
+    if (result === null && locale !== 'en') {
+        result = findTranslation('en');
     }
 
-    if (typeof result !== 'string') {
+    if (result === null || typeof result !== 'string') {
         return key;
     }
     
