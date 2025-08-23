@@ -417,7 +417,7 @@ const generateFullTimetable = (): TimetableEvent[] => {
     const splitHoursIntoSessions = (totalHours: number): number[] => {
         if (totalHours <= 0) return [];
 
-        if (totalHours === 2.5) return [1.5, 1];
+        if (totalHours === 2.5) return [1, 1, 0.5];
 
         const sessions: number[] = [];
         let remainingHours = totalHours;

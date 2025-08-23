@@ -29,9 +29,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const fetchTranslations = async () => {
       try {
-        // Use absolute paths for robustness in SPA environments.
-        const frResponse = await fetch('/locales/fr.json');
-        const enResponse = await fetch('/locales/en.json');
+        const frPath = '/locales/fr.json';
+        const enPath = '/locales/en.json';
+        
+        const [frResponse, enResponse] = await Promise.all([
+          fetch(frPath),
+          fetch(enPath)
+        ]);
 
         if (!frResponse.ok || !enResponse.ok) {
             throw new Error(`Failed to fetch translation files: ${frResponse.statusText}, ${enResponse.statusText}`);
