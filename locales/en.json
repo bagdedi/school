@@ -125,6 +125,7 @@
         "scheduled": "Scheduled",
         "completed": "Completed",
         "cancelled": "Cancelled",
+        "all": "All",
         "student": "Student",
         "referralReason": "Referral Reason",
         "meetingDate": "Meeting Date",

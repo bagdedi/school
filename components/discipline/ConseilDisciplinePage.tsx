@@ -73,7 +73,7 @@ const ConseilDisciplinePage: React.FC<ConseilDisciplinePageProps> = (props) => {
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                             >
-                                {t(`councilMeetingsPage.${status.toLowerCase()}`) || 'All'}
+                                {t(`councilMeetingsPage.${status.toLowerCase()}`)}
                             </button>
                         ))}
                     </div>

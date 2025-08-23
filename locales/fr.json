@@ -125,6 +125,7 @@
         "scheduled": "Planifié",
         "completed": "Terminé",
         "cancelled": "Annulé",
+        "all": "Tous",
         "student": "Étudiant",
         "referralReason": "Motif de la saisine",
         "meetingDate": "Date de la réunion",
