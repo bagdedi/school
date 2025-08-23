@@ -29,8 +29,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const fetchTranslations = async () => {
       try {
-        const frPath = '/locales/fr.json';
-        const enPath = '/locales/en.json';
+        const frPath = 'locales/fr.json';
+        const enPath = 'locales/en.json';
         
         const [frResponse, enResponse] = await Promise.all([
           fetch(frPath),
