@@ -1,4 +1,4 @@
-import type { TimetableEvent, DayWorkingHours, Classe, Teacher, Student, SubjectCoefficient } from '../../types';
+import type { TimetableEvent, DayWorkingHours, Classe, Teacher, Student, SubjectCoefficient, ConseilDisciplineMembers } from '../../types';
 import { mockSubjectCoefficients } from '../scholarship/mockSubjectData';
 
 // --- CENTRALIZED DATA GENERATION ---
@@ -6,9 +6,20 @@ import { mockSubjectCoefficients } from '../scholarship/mockSubjectData';
 // --- HELPERS & SHARED DATA ---
 const getSpecialiteAbbr = (specialite: string): string => {
   const abbreviations: { [key: string]: string } = {
-    'Tronc commun': 'AS', 'Tronc Commun': 'AS', 'Sport': 'SPORT', 'Sciences': 'SC', 'Économie et Services': 'ECO-SERV',
-    'Economie et Gestion': 'ECO-GES', 'Lettres': 'LETT', 'Sciences Expérimentales': 'SC.EXP', 'Mathématiques': 'MATH',
-    'Techniques': 'TECH', 'Technologie': 'TECH', 'Sciences Informatiques': 'INFO', "Sciences de l'Informatique": 'INFO',
+    'Tronc commun': 'AS',
+    'Tronc Commun': 'AS',
+    'Sport': 'SPORT',
+    'Sciences': 'SC',
+    'Économie et Services': 'ECO-SERV',
+    'Economie et Gestion': 'ECO-GES',
+    'Lettres': 'LETT',
+    'Sciences Expérimentales': 'SC.EXP',
+    'Mathématiques': 'MATH',
+    'Techniques': 'TECH',
+    'Sciences Techniques': 'TECH',
+    'Technologie': 'TECH',
+    'Sciences Informatiques': 'INFO',
+    "Sciences de l'Informatique": 'INFO',
     "Technologie de l'Informatique": 'INFO-TECH'
   };
   return abbreviations[specialite] || specialite.substring(0, 4).toUpperCase();
@@ -66,25 +77,34 @@ const diplomas = ['Doctorat', 'Masters', 'Bachelors'];
 const statuses = ['Permanent', 'Vacataire', 'Contractuel'];
 
 const generateTeachers = (): Teacher[] => {
-    const subjectHours: { [subject: string]: number } = {};
+    const subjectWorkload: { [subject: string]: { totalHours: number, classCount: number } } = {};
     initialClasses.forEach(c => {
         mockSubjectCoefficients
             .filter(sc => sc.level === c.niveau && sc.specialization === c.specialite)
             .forEach(sc => {
+                if (!subjectWorkload[sc.subject]) {
+                    subjectWorkload[sc.subject] = { totalHours: 0, classCount: 0 };
+                }
                 const totalHours = parseFloat(sc.hours);
+                const groupHours = parseFloat(sc.groupHours || '0');
                 if (!isNaN(totalHours)) {
-                    subjectHours[sc.subject] = (subjectHours[sc.subject] || 0) + totalHours;
+                    const effectiveWorkload = totalHours + groupHours;
+                    subjectWorkload[sc.subject].totalHours += effectiveWorkload;
+                    subjectWorkload[sc.subject].classCount += 1;
                 }
             });
     });
 
     const teachers: Teacher[] = [];
     let teacherIdCounter = 1;
-    const TARGET_HOURS_PER_TEACHER = 10; // Lowered to generate more teachers
+    const TARGET_HOURS_PER_TEACHER = 18;
+    const MAX_CLASSES_PER_TEACHER = 12;
 
-    Object.keys(subjectHours).forEach(subject => {
-        const totalHours = subjectHours[subject];
-        const numTeachersNeeded = Math.max(1, Math.ceil(totalHours / TARGET_HOURS_PER_TEACHER));
+    Object.keys(subjectWorkload).forEach(subject => {
+        const { totalHours, classCount } = subjectWorkload[subject];
+        const teachersByHours = Math.ceil(totalHours / TARGET_HOURS_PER_TEACHER);
+        const teachersByClasses = Math.ceil(classCount / MAX_CLASSES_PER_TEACHER);
+        const numTeachersNeeded = Math.max(1, teachersByHours, teachersByClasses);
 
         for (let i = 0; i < numTeachersNeeded; i++) {
             const gender = Math.random() > 0.5 ? 'Male' : 'Female';
@@ -127,7 +147,8 @@ export const mockTeachers: Teacher[] = generateTeachers();
 const studentFirstNamesMale = ['Karim', 'Ali', 'Mohamed', 'Ahmed', 'Youssef', 'Omar', 'Sami', 'Walid', 'Khaled', 'Anis', 'Hedi', 'Nizar', 'Fares', 'Rami', 'Zied'];
 const studentFirstNamesFemale = ['Amira', 'Fatma', 'Salma', 'Mariem', 'Nour', 'Yasmine', 'Ines', 'Sarah', 'Leila', 'Rim', 'Hedia', 'Sonia', 'Faten', 'Amel', 'Cyrine'];
 const studentLastNames = ['Ben Ali', 'Mansouri', 'Zouari', 'Trabelsi', 'Guesmi', 'Jlassi', 'Dridi', 'Amri', 'Chebbi', 'Saidi', 'Khemiri', 'Mejri', 'Hamdi', 'Toumi', 'Abbasi'];
-const optionalSubjectsList = ['Musique', 'espagnole', 'allemand', 'Dessin'];
+const languageSubjects = ['espagnole', 'allemand'];
+const otherOptionalSubjects = ['Musique', 'Dessin'];
 
 const getBirthYearForLevel = (level: string): number => {
     const currentYear = new Date().getFullYear();
@@ -154,6 +175,16 @@ const generateStudents = (classes: Classe[]): Student[] => {
             const id = `S${String(studentIdCounter).padStart(4, '0')}`;
             const birthYear = getBirthYearForLevel(c.niveau) + (Math.random() > 0.5 ? 0 : -1);
             
+            let studentOptions: string[] = [];
+            if (c.niveau === '3 annee' || c.niveau === '4 annee') {
+                const selectedLanguage = languageSubjects[Math.floor(Math.random() * languageSubjects.length)];
+                studentOptions.push(selectedLanguage);
+
+                const shuffledOthers = [...otherOptionalSubjects].sort(() => 0.5 - Math.random());
+                const amountToTake = Math.random() > 0.5 ? 1 : 2;
+                studentOptions.push(...shuffledOthers.slice(0, amountToTake));
+            }
+
             students.push({
                 id: id,
                 matricule: `S2024${String(studentIdCounter).padStart(4, '0')}`,
@@ -166,9 +197,7 @@ const generateStudents = (classes: Classe[]): Student[] => {
                 address: `${Math.floor(Math.random() * 100) + 1} Avenue Habib Bourguiba, ${places[Math.floor(Math.random() * places.length)]}`,
                 academicLevel: c.niveau,
                 academicSpecialty: c.specialite,
-                option: (c.niveau === '3 annee' || c.niveau === '4 annee') && Math.random() > 0.6 
-                    ? optionalSubjectsList[Math.floor(Math.random() * optionalSubjectsList.length)]
-                    : '',
+                option: studentOptions,
                 parentPhone: `216-${String(Math.floor(Math.random() * 80) + 20)}-${String(Math.floor(Math.random() * 900) + 100)}-${String(Math.floor(Math.random() * 900) + 100).slice(0,3)}`,
                 parentEmail: `${lastName.toLowerCase().replace(' ','')}.${firstName.charAt(0).toLowerCase()}.parent@email.com`,
                 classe: c.name,
@@ -195,6 +224,15 @@ const generateHalls = (): string[] => {
     return halls.sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
 };
 export const initialHalls = generateHalls();
+
+// --- CONSEIL DE DISCIPLINE MOCK DATA ---
+export const mockConseilDisciplineMembers: ConseilDisciplineMembers = {
+    censeur: 'Ali Mansouri',
+    conseillerPrincipal: 'Salma Zouari',
+    conseillerInternat: 'Karim Trabelsi',
+    enseignantsElus: mockTeachers.slice(0, 5).map(t => t.id),
+    representantParents: 'Nour Guesmi',
+};
 
 // --- TIMETABLE GENERATION ALGORITHM ---
 
@@ -253,23 +291,25 @@ const generateFullTimetable = (): TimetableEvent[] => {
     const events: TimetableEvent[] = [];
     let eventId = 1;
 
-    // --- NEW: Assign a specific tech specialty to each "Sciences Techniques" class ---
+    // --- 1. Teacher Assignment Phase ---
+    const teacherAssignments = new Map<string, string>(); // Key: "className-subject", Value: teacherFullName
+    const teacherWorkload = new Map<string, number>(); // Key: teacherFullName, Value: hours
+    const teacherLevels = new Map<string, Set<string>>(); // Key: teacherFullName, Value: Set of levels
+
+    mockTeachers.forEach(t => {
+        const name = `${t.firstName} ${t.lastName}`;
+        teacherWorkload.set(name, 0);
+        teacherLevels.set(name, new Set());
+    });
+
+    // Create a list of all teaching tasks
+    const allTasks: { class: Classe, subjectInfo: SubjectCoefficient, effectiveWorkload?: number }[] = [];
     const techSpecialtyMap = new Map<string, 'Génie Électrique' | 'Génie Mécanique'>();
     initialClasses.forEach(c => {
         if (c.specialite === 'Sciences Techniques') {
             techSpecialtyMap.set(c.name, Math.random() < 0.5 ? 'Génie Électrique' : 'Génie Mécanique');
         }
-    });
-
-    // --- 1. Teacher Assignment Phase ---
-    const teacherAssignments = new Map<string, string>(); // Key: "className-subject", Value: teacherFullName
-    const teacherWorkload = new Map<string, number>(); // Key: teacherFullName, Value: hours
-    mockTeachers.forEach(t => teacherWorkload.set(`${t.firstName} ${t.lastName}`, 0));
-
-    for (const c of initialClasses) {
         let subjectsForClass = mockSubjectCoefficients.filter(s => s.level === c.niveau && s.specialization === c.specialite);
-        
-        // Filter tech subjects based on pre-assignment
         if (c.specialite === 'Sciences Techniques') {
             const assignedTech = techSpecialtyMap.get(c.name);
             subjectsForClass = subjectsForClass.filter(s => {
@@ -279,24 +319,96 @@ const generateFullTimetable = (): TimetableEvent[] => {
                 return true;
             });
         }
+        subjectsForClass.forEach(subjectInfo => allTasks.push({ class: c, subjectInfo }));
+    });
+    
+    allTasks.forEach(task => {
+        const totalHours = parseFloat(task.subjectInfo.hours) || 0;
+        const groupHours = parseFloat(task.subjectInfo.groupHours || '0') || 0;
+        task.effectiveWorkload = totalHours + groupHours;
+    });
+    
+    // Sort tasks by effective workload descending to place heavier tasks first
+    allTasks.sort((a, b) => (b.effectiveWorkload || 0) - (a.effectiveWorkload || 0));
 
-        for (const subjectInfo of subjectsForClass) {
-            const subject = subjectInfo.subject;
-            let teachersForSubject: Teacher[];
-            if (subject === 'Technologie' && (c.niveau === '1 annee' || c.niveau === '2 annee')) {
-                teachersForSubject = mockTeachers.filter(t => t.specialty === 'Technologie' || t.specialty === 'Génie Mécanique' || t.specialty === 'Génie Électrique');
-            } else {
-                teachersForSubject = mockTeachers.filter(t => t.specialty === subject);
-            }
-            if (teachersForSubject.length === 0) continue;
-            const totalHours = parseFloat(subjectInfo.hours) || 0;
-            const availableTeachers = teachersForSubject.map(t => ({ name: `${t.firstName} ${t.lastName}`, load: teacherWorkload.get(`${t.firstName} ${t.lastName}`)! }));
-            availableTeachers.sort((a, b) => a.load - b.load);
-            const assignedTeacherName = availableTeachers[0].name;
-            teacherAssignments.set(`${c.name}-${subject}`, assignedTeacherName);
-            teacherWorkload.set(assignedTeacherName, (teacherWorkload.get(assignedTeacherName) || 0) + totalHours);
+    allTasks.forEach(task => {
+        const { class: c, subjectInfo } = task;
+        const subject = subjectInfo.subject;
+        const effectiveWorkload = task.effectiveWorkload || 0;
+
+        let teachersForSubject = mockTeachers.filter(t => t.specialty === subject);
+        if (subject === 'Technologie' && (c.niveau === '1 annee' || c.niveau === '2 annee')) {
+             teachersForSubject = mockTeachers.filter(t => t.specialty === 'Technologie' || t.specialty === 'Génie Mécanique' || t.specialty === 'Génie Électrique');
         }
-    }
+
+        if (teachersForSubject.length === 0) {
+            console.error(`No teacher for subject: ${subject}`);
+            return;
+        }
+
+        const scoreTeacher = (teacherName: string, isRelaxed: boolean = false) => {
+            const currentLoad = teacherWorkload.get(teacherName)!;
+            const currentLevels = teacherLevels.get(teacherName)!;
+            const newLoad = currentLoad + effectiveWorkload;
+            const isNewLevel = !currentLevels.has(c.niveau);
+
+            // Hard constraints
+            if (newLoad > 20) return -Infinity; // Increased limit slightly
+            if (!isRelaxed && isNewLevel && currentLevels.size >= 2) return -Infinity;
+
+            // Soft scoring
+            let score = 1000;
+            // Penalize heavy loads
+            score -= newLoad * newLoad;
+            // Penalize adding a 3rd level (in relaxed mode)
+            if (isRelaxed && isNewLevel && currentLevels.size >= 2) score -= 500;
+            
+            return score;
+        };
+        
+        let bestTeacher: { name: string, score: number } | null = null;
+
+        // Try strict assignment
+        let scoredTeachers = teachersForSubject
+            .map(t => ({ name: `${t.firstName} ${t.lastName}`, score: scoreTeacher(`${t.firstName} ${t.lastName}`) }))
+            .filter(t => t.score > -Infinity)
+            .sort((a, b) => b.score - a.score);
+        
+        if (scoredTeachers.length > 0) {
+            bestTeacher = scoredTeachers[0];
+        } else {
+            // Try relaxed assignment (ignore level constraint)
+            scoredTeachers = teachersForSubject
+                .map(t => ({ name: `${t.firstName} ${t.lastName}`, score: scoreTeacher(`${t.firstName} ${t.lastName}`, true) }))
+                .filter(t => t.score > -Infinity)
+                .sort((a, b) => b.score - a.score);
+            if (scoredTeachers.length > 0) {
+                bestTeacher = scoredTeachers[0];
+            }
+        }
+        
+        if (bestTeacher) {
+            const { name } = bestTeacher;
+            teacherAssignments.set(`${c.name}-${subject}`, name);
+            teacherWorkload.set(name, teacherWorkload.get(name)! + effectiveWorkload);
+            const levels = teacherLevels.get(name)!;
+            levels.add(c.niveau);
+            teacherLevels.set(name, levels);
+        } else {
+            // Fallback: assign to the absolutely least loaded teacher for this subject
+            const fallbackTeacher = teachersForSubject.map(t => ({name: `${t.firstName} ${t.lastName}`, load: teacherWorkload.get(`${t.firstName} ${t.lastName}`)!})).sort((a,b)=> a.load - b.load)[0];
+            if(fallbackTeacher) {
+                const { name } = fallbackTeacher;
+                teacherAssignments.set(`${c.name}-${subject}`, name);
+                teacherWorkload.set(name, teacherWorkload.get(name)! + effectiveWorkload);
+                const levels = teacherLevels.get(name)!;
+                levels.add(c.niveau);
+                teacherLevels.set(name, levels);
+            } else {
+                 console.error(`COULD NOT ASSIGN TEACHER FOR ${subject} in ${c.name}`);
+            }
+        }
+    });
 
     // --- 2. Session Pre-computation Phase ---
     type Session = { class: Classe; subjectInfo: SubjectCoefficient; duration: number; };
@@ -304,6 +416,9 @@ const generateFullTimetable = (): TimetableEvent[] => {
     const groupSessionsByClass = new Map<string, Session[]>();
     const splitHoursIntoSessions = (totalHours: number): number[] => {
         if (totalHours <= 0) return [];
+
+        if (totalHours === 2.5) return [1.5, 1];
+
         const sessions: number[] = [];
         let remainingHours = totalHours;
         const validDurations = [2, 1.5, 1, 0.5];
@@ -324,7 +439,6 @@ const generateFullTimetable = (): TimetableEvent[] => {
     for (const c of initialClasses) {
         let subjectsForClass = mockSubjectCoefficients.filter(s => s.level === c.niveau && s.specialization === c.specialite);
         
-        // Filter tech subjects based on pre-assignment
         if (c.specialite === 'Sciences Techniques') {
             const assignedTech = techSpecialtyMap.get(c.name);
             subjectsForClass = subjectsForClass.filter(s => {
@@ -373,7 +487,6 @@ const generateFullTimetable = (): TimetableEvent[] => {
         events.push({ ...details, id: String(eventId++), color: getSubjectColor(details.subject) });
     };
 
-    // --- Sorting Heuristic ---
     const specialSubjects = Object.keys(categorizedHalls).filter(k => k !== 'general');
     const isSpecialized = (subject: string) => specialSubjects.includes(subject);
 
@@ -381,32 +494,31 @@ const generateFullTimetable = (): TimetableEvent[] => {
         if (item.type === 'paired_group') {
             const s1_spec = isSpecialized(item.session1.subjectInfo.subject);
             const s2_spec = isSpecialized(item.session2.subjectInfo.subject);
-            if (s1_spec && s2_spec) return 5; // Hardest: two specialized rooms needed
-            if (s1_spec || s2_spec) return 4; // Hard: one specialized room
-            return 3; // Normal pair
+            if (s1_spec && s2_spec) return 5;
+            if (s1_spec || s2_spec) return 4;
+            return 3;
         }
         if (item.type === 'single_group') {
-            if (isSpecialized(item.session.subjectInfo.subject)) return 2; // single group needing specialized room
+            if (isSpecialized(item.session.subjectInfo.subject)) return 2;
         }
         if (item.type === 'full') {
-            if (isSpecialized(item.session.subjectInfo.subject)) return 1; // full class needing specialized room
+            if (isSpecialized(item.session.subjectInfo.subject)) return 1;
         }
-        return 0; // Easiest: full class, general room
+        return 0;
     };
     
-    // Prioritize longer sessions first, then harder (more resource-intensive) sessions.
     const getDuration = (item: ScheduleItem) => item.type === 'paired_group' ? item.session1.duration : item.session.duration;
 
     scheduleQueue.sort((a, b) => {
         const durationA = getDuration(a);
         const durationB = getDuration(b);
         if (durationA !== durationB) {
-            return durationB - durationA; // Primary sort: duration descending
+            return durationB - durationA;
         }
         
         const hardnessA = getHardness(a);
         const hardnessB = getHardness(b);
-        return hardnessB - hardnessA; // Secondary sort: hardness descending
+        return hardnessB - hardnessA;
     });
 
     const isOccupied = (type: 'teacher' | 'hall' | 'class', id: string, day: number, startM: number, endM: number): boolean => {
@@ -424,14 +536,10 @@ const generateFullTimetable = (): TimetableEvent[] => {
                     const placingBaseClass = id.split(' GR')[0];
                     const scheduledBaseClass = e.className.split(' GR')[0];
 
-                    if (placingBaseClass !== scheduledBaseClass) return false; // Different class
+                    if (placingBaseClass !== scheduledBaseClass) return false;
 
-                    // Conflict if:
-                    // 1. Scheduled event is a full class.
                     if (!scheduledIsGroup) return true;
-                    // 2. We are placing a full class.
                     if (!placingIsGroup) return true;
-                    // 3. We are placing a group, and the scheduled event is for the same group.
                     if (placingIsGroup && scheduledIsGroup && id === e.className) return true;
                 }
             }
@@ -442,7 +550,6 @@ const generateFullTimetable = (): TimetableEvent[] => {
     const findAvailableHall = (subject: string, day: number, startM: number, endM: number, excludedHalls: string[] = []): string | null => {
         const hallTypeKey = Object.keys(categorizedHalls).find(k => k === subject);
         
-        // Try specialized halls first, if applicable
         if (hallTypeKey && categorizedHalls[hallTypeKey]) {
             const potentialHalls = categorizedHalls[hallTypeKey];
             for (const hall of potentialHalls) {
@@ -452,7 +559,6 @@ const generateFullTimetable = (): TimetableEvent[] => {
             }
         }
 
-        // If no specialized hall is found or needed, try general halls
         const generalHalls = categorizedHalls['general'];
         for (const hall of generalHalls) {
             if (!excludedHalls.includes(hall) && !isOccupied('hall', hall, day, startM, endM)) {
@@ -460,7 +566,7 @@ const generateFullTimetable = (): TimetableEvent[] => {
             }
         }
 
-        return null; // No hall available
+        return null;
     };
     
     const restDays = new Map<string, number>();
@@ -553,7 +659,6 @@ const generateFullTimetable = (): TimetableEvent[] => {
     for (const item of scheduleQueue) {
         let placed = tryPlaceItem(item, 'strict') || tryPlaceItem(item, 'relaxed') || tryPlaceItem(item, 'force');
         if (!placed) {
-            // We log the item that couldn't be placed for easier debugging.
             console.error("FATAL: Could not place schedule item. Check constraints and resources.", JSON.stringify(item, null, 2));
         }
     }

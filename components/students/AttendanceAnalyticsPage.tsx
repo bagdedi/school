@@ -536,7 +536,7 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
                   {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 rounded-lg bg-violet-50 border border-violet-200">
               <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodType)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                   <option value="day">Par jour</option>
                   <option value="week">Par semaine</option>
@@ -547,8 +547,14 @@ const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = ({ class
               </select>
               {period === 'custom' && (
                   <>
-                  <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
-                  <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
+                  <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-700">du</span>
+                      <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-700">à</span>
+                      <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"/>
+                  </div>
                   </>
               )}
           </div>

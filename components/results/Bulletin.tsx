@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { Student, StudentGrades, SubjectGrade, SubjectCoefficient } from '../../types';
+import type { Student, StudentGrades, SubjectGrade, SubjectCoefficient, Term } from '../../types';
 import { TunisiaMinistryLogo } from '../icons/TunisiaMinistryLogo';
 import { findAssessmentRule } from '../scholarship/continuousAssessmentData';
 
@@ -11,6 +11,7 @@ interface BulletinProps {
     directorName: string;
     subjectCoefficients: SubjectCoefficient[];
     classStudentCount: number;
+    term: Term;
 }
 
 const formatNumber = (num?: number | null, precision = 2) => {
@@ -76,7 +77,7 @@ const calculateAveragesAndRanks = (allGrades: StudentGrades[], subjectCoefficien
     return { generalRanks, studentAverages };
 };
 
-export const Bulletin: React.FC<BulletinProps> = ({ student, studentGrades, allClassGrades, schoolName, directorName, subjectCoefficients, classStudentCount }) => {
+export const Bulletin: React.FC<BulletinProps> = ({ student, studentGrades, allClassGrades, schoolName, directorName, subjectCoefficients, classStudentCount, term }) => {
     
     // The student list for rank calculation should be derived from allClassGrades to match
     const studentListForRanks = useMemo(() => {
@@ -155,8 +156,18 @@ export const Bulletin: React.FC<BulletinProps> = ({ student, studentGrades, allC
         return 'ضعيف';
     };
 
+    const getTermInArabic = (term: Term) => {
+        switch (term) {
+            case 'Trimestre 1': return 'الثلاثي الأول';
+            case 'Trimestre 2': return 'الثلاثي الثاني';
+            case 'Trimestre 3': return 'الثلاثي الثالث';
+            default: return '';
+        }
+    };
+
+
     if (!studentGrades) {
-        return <div className="p-8 text-center text-gray-500">Aucune donnée de notes disponible pour cet étudiant.</div>;
+        return <div className="p-8 text-center text-gray-500">Aucune donnée de notes disponible pour cet étudiant pour le {term}.</div>;
     }
 
     return (
@@ -171,7 +182,7 @@ export const Bulletin: React.FC<BulletinProps> = ({ student, studentGrades, allC
                 <div className="flex flex-col items-center">
                     <TunisiaMinistryLogo className="w-20 h-24"/>
                     <h1 className="text-xl font-bold mt-2">بطاقة النتائج المدرسية</h1>
-                    <p className="text-sm">الثلاثي الأول - السنة الدراسية: 2025-2026</p>
+                    <p className="text-sm">{getTermInArabic(term)} - السنة الدراسية: 2025-2026</p>
                 </div>
                 <div className="text-right text-xs space-y-1">
                     <p>الاسم واللقب: <span className="font-bold">{student.lastName} {student.firstName}</span></p>
@@ -247,7 +258,7 @@ export const Bulletin: React.FC<BulletinProps> = ({ student, studentGrades, allC
                             <div className="p-1 text-center">الرتبة</div>
                         </div>
                         <div className="grid grid-cols-3 border-t border-black">
-                            <div className="p-1 border-l border-black text-center">الثلاثي الأول</div>
+                            <div className="p-1 border-l border-black text-center">{getTermInArabic(term)}</div>
                             <div className="p-1 border-l border-black text-center font-bold">{formatNumber(generalAverage)}</div>
                             <div className="p-1 text-center font-bold">{generalRank || '--'}</div>
                         </div>

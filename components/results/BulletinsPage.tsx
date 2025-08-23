@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Student, Classe, StudentGrades, SubjectCoefficient } from '../../types';
+import type { Student, Classe, StudentGrades, SubjectCoefficient, Term } from '../../types';
 import { Bulletin } from './Bulletin';
 import { ResetIcon } from '../icons/ResetIcon';
 import { AcademicCapIcon } from '../icons/AcademicCapIcon';
@@ -16,8 +16,11 @@ interface BulletinsPageProps {
     subjectCoefficients: SubjectCoefficient[];
 }
 
+const terms: Term[] = ['Trimestre 1', 'Trimestre 2', 'Trimestre 3'];
+
 const BulletinsPage: React.FC<BulletinsPageProps> = ({ students, classes, grades, schoolName, directorName, subjectCoefficients }) => {
     const [filters, setFilters] = useState({ niveau: '', specialite: '', classe: '', studentId: '' });
+    const [selectedTerm, setSelectedTerm] = useState<Term>('Trimestre 1');
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [isPrinting, setIsPrinting] = useState(false);
 
@@ -93,15 +96,32 @@ const BulletinsPage: React.FC<BulletinsPageProps> = ({ students, classes, grades
         });
     };
 
-    const studentGradesData = grades.find(g => g.studentId === selectedStudent?.id && g.term === 'Trimestre 1');
-    const allClassGrades = grades.filter(g => availableStudents.some(s => s.id === g.studentId));
+    const studentGradesData = grades.find(g => g.studentId === selectedStudent?.id && g.term === selectedTerm);
+    const allClassGrades = grades.filter(g => availableStudents.some(s => s.id === g.studentId) && g.term === selectedTerm);
     const classStudentCount = availableStudents.length;
 
     return (
         <div className="space-y-6">
-            <div>
+            <div className="flex justify-between items-start">
+              <div>
                 <h1 className="text-3xl font-bold text-gray-800">Consultation des Bulletins</h1>
                 <p className="mt-1 text-gray-600">Filtrez pour sélectionner un étudiant et afficher son bulletin de notes.</p>
+              </div>
+               <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                {terms.map(term => (
+                  <button
+                    key={term}
+                    onClick={() => setSelectedTerm(term)}
+                    className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                      selectedTerm === term
+                        ? 'bg-white text-indigo-700 shadow'
+                        : 'text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-md">
@@ -162,6 +182,7 @@ const BulletinsPage: React.FC<BulletinsPageProps> = ({ students, classes, grades
                             directorName={directorName}
                             subjectCoefficients={subjectCoefficients}
                             classStudentCount={classStudentCount}
+                            term={selectedTerm}
                         />
                     </div>
                 </div>

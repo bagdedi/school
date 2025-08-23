@@ -1,116 +1,62 @@
-import type { StudentGrades } from '../../types';
+import type { StudentGrades, SubjectGrade, Term } from '../../types';
+import { mockStudents } from '../timetable/mockData';
+import { mockSubjectCoefficients } from '../scholarship/mockSubjectData';
+import { findAssessmentRule } from '../scholarship/continuousAssessmentData';
 
-export const mockGradeData: StudentGrades[] = [
-    {
-        studentId: 'S0001', // Assuming there's a student with this ID. Adjust if needed.
-        term: 'Trimestre 1',
-        grades: [
-            {
-                subjectName: 'العربية',
-                coefficient: 2,
-                notes: {},
-                average: 16.78,
-                appreciation: 'جيد جدا',
-                subGrades: [
-                    {
-                        subjectName: 'إنشاء',
-                        coefficient: 1, // Sub-coefficients for calculation
-                        notes: {
-                            'Devoir de Contrôle': 20.00,
-                            'Devoir de Synthèse': 17.00,
-                        },
-                        average: 18.00,
-                        appreciation: 'Excellent'
-                    },
-                    {
-                        subjectName: 'دراسة نص',
-                        coefficient: 1,
-                        notes: {
-                            'Devoir de Contrôle': 15.00,
-                            'Devoir de Synthèse': 14.00,
-                        },
-                        average: 14.33,
-                        appreciation: 'Assez bien'
+const terms: Term[] = ['Trimestre 1', 'Trimestre 2', 'Trimestre 3'];
+
+const generateMockGrades = (): StudentGrades[] => {
+    const allStudentGrades: StudentGrades[] = [];
+
+    mockStudents.forEach(student => {
+        // Assign a random performance factor to each student for grade consistency
+        const studentPerformanceFactor = 0.65 + Math.random() * 0.45; // between 0.65 (D) and 1.1 (A+)
+        
+        terms.forEach(term => {
+            const subjectsForStudent = mockSubjectCoefficients.filter(sc => 
+                sc.level === student.academicLevel && sc.specialization === student.academicSpecialty
+            );
+
+            const gradesForTerm: SubjectGrade[] = [];
+            
+            // Add a slight variation per term
+            const termPerformanceFactor = studentPerformanceFactor + (Math.random() - 0.5) * 0.1;
+
+            subjectsForStudent.forEach(subjectInfo => {
+                const rule = findAssessmentRule(subjectInfo);
+                if (!rule) return;
+
+                const notes: { [examName: string]: number | null } = {};
+                rule.exams.forEach(exam => {
+                    // 5% chance of missing an exam
+                    if (Math.random() < 0.05) {
+                        notes[exam.name] = null;
+                    } else {
+                        const baseGrade = 4 + Math.random() * 16; // Base grade between 4 and 20
+                        // Apply performance factor and add some random variance
+                        const finalGrade = Math.min(20, Math.max(0, baseGrade * termPerformanceFactor + (Math.random() - 0.5) * 3));
+                        notes[exam.name] = parseFloat(finalGrade.toFixed(2));
                     }
-                ]
-            },
-            {
-                subjectName: 'الفرنسية',
-                coefficient: 4,
-                notes: {},
-                average: 16.01,
-                appreciation: 'Moyen'
-            },
-            {
-                subjectName: 'الأنقليزية',
-                coefficient: 1.5,
-                notes: {},
-                average: 10.67,
-                appreciation: 'Assez bien'
-            },
-            {
-                subjectName: 'التاريخ',
-                coefficient: 1,
-                notes: {},
-                average: 14.00,
-                appreciation: 'Bien'
-            },
-            {
-                subjectName: 'الجغرافيا',
-                coefficient: 1,
-                notes: {},
-                average: 12.00,
-                appreciation: 'Bien'
-            },
-            {
-                subjectName: 'التربية الاسلامية',
-                coefficient: 1,
-                notes: {},
-                average: 14.50,
-                appreciation: 'Bien'
-            },
-            {
-                subjectName: 'الرياضيات',
-                coefficient: 3,
-                notes: {},
-                average: 15.17,
-                appreciation: 'Assez bien'
-            },
-            {
-                subjectName: 'الاعلامية',
-                coefficient: 1,
-                notes: {},
-                average: 13.75,
-                appreciation: 'Bien'
-            },
-            {
-                subjectName: 'الموسيقى',
-                coefficient: 1,
-                notes: {},
-                average: 12.33,
-                appreciation: 'Assez bien'
-            },
-            {
-                subjectName: 'التربية التشكيلية',
-                coefficient: 1,
-                notes: {},
-                average: 13.88,
-                appreciation: 'Moyen'
-            },
-            {
-                subjectName: 'التربية البدنية',
-                coefficient: 1,
-                notes: {},
-                average: 10.67,
-                appreciation: 'Assez bien'
-            },
-            {
-                subjectName: 'التربية التقنية',
-                coefficient: 1,
-                notes: {},
-                average: 13.00,
-                appreciation: 'Bien'
-            },
-        ]
-    }
-];
+                });
+
+                gradesForTerm.push({
+                    subjectName: subjectInfo.subject,
+                    coefficient: parseFloat(subjectInfo.coefficient), // This will be recalculated in the bulletin component
+                    notes: notes,
+                });
+            });
+
+            if (gradesForTerm.length > 0) {
+                allStudentGrades.push({
+                    studentId: student.id,
+                    term: term,
+                    grades: gradesForTerm,
+                });
+            }
+        });
+    });
+
+    return allStudentGrades;
+};
+
+export const mockGradeData: StudentGrades[] = generateMockGrades();

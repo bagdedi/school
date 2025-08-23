@@ -9,6 +9,8 @@ import { AttestationSelectionModal } from './AttestationSelectionModal';
 import { StudentDetailsModal } from './StudentDetailsModal';
 import { EyeIcon } from '../icons/EyeIcon';
 import { DocumentDuplicateIcon } from '../icons/DocumentDuplicateIcon';
+import { Toaster, toast } from 'react-hot-toast';
+import { InfoIcon } from '../icons/InfoIcon';
 
 // This tells TypeScript that we expect `process` to be available in the global
 // scope, as provided by the execution environment.
@@ -44,6 +46,7 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
   const [studentForAttestation, setStudentForAttestation] = useState<Student | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [studentForDetails, setStudentForDetails] = useState<Student | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
 
   const handleAddStudent = () => {
@@ -56,12 +59,18 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
     setIsModalOpen(true);
   };
 
-  const handleDeleteStudent = (studentId: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet étudiant ?')) {
-      setStudents(students.filter((student) => student.id !== studentId));
-    }
+  const requestDeleteStudent = (student: Student) => {
+    setStudentToDelete(student);
   };
   
+  const confirmDeleteStudent = () => {
+    if (studentToDelete) {
+      setStudents(students.filter((student) => student.id !== studentToDelete.id));
+      toast.success(`L'étudiant ${studentToDelete.firstName} ${studentToDelete.lastName} a été supprimé.`);
+      setStudentToDelete(null); // Close modal
+    }
+  };
+
   const handleSaveStudent = (studentData: Omit<Student, 'id' | 'avatar' | 'photoUrl' | 'matricule'>) => {
     if (editingStudent) {
       // Update existing student
@@ -146,6 +155,7 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
 
   return (
     <>
+      <Toaster position="top-center" />
       <div className="bg-white p-8 rounded-xl shadow-md">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -230,38 +240,38 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
                   <td className="py-3 px-4">{student.academicSpecialty}</td>
                   <td className="py-3 px-4">{student.classe || '-'}</td>
                   <td className="py-3 px-4">
-                    <div className="flex justify-center items-center space-x-2">
+                    <div className="flex justify-center items-center space-x-1.5">
                       <button
                         onClick={() => handleDetailsClick(student)}
-                        className="p-2 text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                        className="p-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
                         title="Détails"
                         aria-label={`Détails de ${student.firstName} ${student.lastName}`}
                       >
-                        <EyeIcon />
+                        <EyeIcon className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleEditStudent(student)}
-                        className="p-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+                        className="p-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
                         title="Modifier"
                         aria-label={`Modifier ${student.firstName} ${student.lastName}`}
                       >
-                        <PencilIcon />
+                        <PencilIcon className="h-4 w-4" />
                       </button>
                        <button
                         onClick={() => handleAttestationClick(student)}
-                        className="flex items-center bg-teal-500 text-white text-sm font-semibold py-2 px-3 rounded-lg hover:bg-teal-600 transition-colors"
+                        className="flex items-center bg-teal-100 text-teal-700 text-xs font-semibold py-1 px-2.5 rounded-md hover:bg-teal-200 transition-colors"
                         title="Générer une attestation"
                         aria-label={`Générer attestation pour ${student.firstName} ${student.lastName}`}
                       >
                         <DocumentDuplicateIcon className="h-4 w-4 mr-1"/><span>Attestation</span>
                       </button>
                       <button
-                        onClick={() => handleDeleteStudent(student.id)}
-                        className="p-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                        onClick={() => requestDeleteStudent(student)}
+                        className="p-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
                         title="Supprimer"
                         aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
                       >
-                        <TrashIcon />
+                        <TrashIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -297,6 +307,48 @@ const StudentsPage: React.FC<StudentsPageProps> = ({
             student={studentForDetails}
             onClose={() => setIsDetailsModalOpen(false)}
         />
+      )}
+      {studentToDelete && (
+        <Modal
+          isOpen={!!studentToDelete}
+          onClose={() => setStudentToDelete(null)}
+          title="Confirmation de Suppression"
+          size="lg"
+        >
+        <div>
+            <p className="text-gray-700 text-lg">
+                Êtes-vous sûr de vouloir supprimer l'étudiant suivant ?
+            </p>
+            <p className="text-center font-bold text-2xl text-indigo-700 my-4 bg-gray-100 p-3 rounded-md">
+                {studentToDelete.firstName} {studentToDelete.lastName}
+            </p>
+            <div className="mt-4 bg-red-50 border-l-4 border-red-400 text-red-700 p-4 rounded-r-md">
+                <p className="font-semibold flex items-center">
+                    <InfoIcon className="h-5 w-5 mr-2" />
+                    Attention
+                </p>
+                <p className="text-sm mt-1">
+                    Cette action est irréversible et supprimera toutes les données associées à cet étudiant.
+                </p>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                <button
+                    type="button"
+                    onClick={() => setStudentToDelete(null)}
+                    className="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                    Annuler
+                </button>
+                <button
+                    type="button"
+                    onClick={confirmDeleteStudent}
+                    className="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                >
+                    <TrashIcon /> <span className="ml-2">Supprimer</span>
+                </button>
+            </div>
+        </div>
+        </Modal>
       )}
     </>
   );

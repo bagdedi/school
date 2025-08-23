@@ -26,6 +26,11 @@ export const ClassDetailsTable: React.FC<ClassDetailsTableProps> = ({
   const classStudents = useMemo(() => {
     return students
       .filter(s => s.classe === classNameToShow)
+      .map(student => ({
+          ...student,
+          // Ensure options are always sorted case-insensitively for display
+          option: student.option ? [...student.option].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())) : [],
+      }))
       .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
   }, [students, classNameToShow]);
 
@@ -33,8 +38,10 @@ export const ClassDetailsTable: React.FC<ClassDetailsTableProps> = ({
     const counts: { [key: string]: number } = {};
 
     classStudents.forEach(student => {
-        if (student.option) {
-            counts[student.option] = (counts[student.option] || 0) + 1;
+        if (student.option && Array.isArray(student.option)) {
+            student.option.forEach(opt => {
+                counts[opt] = (counts[opt] || 0) + 1;
+            });
         }
     });
 
@@ -55,7 +62,7 @@ export const ClassDetailsTable: React.FC<ClassDetailsTableProps> = ({
           <tr className="bg-gray-100">
             <th className="border border-gray-300 px-3 py-2 text-center font-semibold text-gray-700 w-12">N°</th>
             <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Nom Complet</th>
-            <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 w-32">Option</th>
+            <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Option(s)</th>
           </tr>
         </thead>
         <tbody>
@@ -67,10 +74,14 @@ export const ClassDetailsTable: React.FC<ClassDetailsTableProps> = ({
               <td className="border border-gray-300 px-3 py-2 text-center">{index + 1}</td>
               <td className="border border-gray-300 px-3 py-2 capitalize">{`${student.lastName} ${student.firstName}`}</td>
               <td className="border border-gray-300 px-3 py-2 text-center">
-                {student.option ? (
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getOptionBadgeClass(student.option)}`}>
-                        {student.option}
-                    </span>
+                {student.option && student.option.length > 0 ? (
+                    <div className="flex flex-nowrap gap-1 justify-center">
+                        {student.option.map(opt => (
+                            <span key={opt} className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${getOptionBadgeClass(opt)}`}>
+                                {opt}
+                            </span>
+                        ))}
+                    </div>
                 ) : (
                     <span className="text-gray-400">-</span>
                 )}
@@ -88,7 +99,7 @@ export const ClassDetailsTable: React.FC<ClassDetailsTableProps> = ({
         <tfoot className="bg-gray-200 font-bold text-gray-800">
             {totalsByOption.options.map(({ option, count }) => (
                 <tr key={option}>
-                    <td colSpan={2} className="border border-gray-300 px-3 py-2 text-right">Total {option}:</td>
+                    <td colSpan={2} className="border border-gray-300 px-3 py-2 text-right capitalize">Total {option}:</td>
                     <td className="border border-gray-300 px-3 py-2 text-center font-mono">{count}</td>
                 </tr>
             ))}

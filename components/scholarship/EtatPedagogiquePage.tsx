@@ -132,7 +132,7 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
         const anneeMatch = anneeScolaire ? student.schoolYear === anneeScolaire : true;
         const niveauMatch = filters.niveau ? student.academicLevel === filters.niveau : true;
         const specialiteMatch = filters.specialite ? student.academicSpecialty === filters.specialite : true;
-        const optionMatch = filters.option ? student.option === filters.option : true;
+        const optionMatch = filters.option ? student.option?.includes(filters.option) : true;
         return anneeMatch && niveauMatch && specialiteMatch && optionMatch;
     });
   }, [isFiltered, students, filters, anneeScolaire]);
@@ -159,10 +159,11 @@ const EtatPedagogiquePage: React.FC<EtatPedagogiquePageProps> = ({
         const classStudents = studentsByClass[c.name] || [];
 
         const optionsStatsForClass = classStudents
-            .filter(s => s.option)
+            .filter(s => s.option && s.option.length > 0)
             .reduce((acc, student) => {
-                const option = student.option!;
-                acc[option] = (acc[option] || 0) + 1;
+                student.option!.forEach(option => {
+                    acc[option] = (acc[option] || 0) + 1;
+                });
                 return acc;
             }, {} as Record<string, number>);
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Modal } from '../common/Modal';
-import type { Classe, Student, Teacher, StudentGrades, SubjectGrade } from '../../types';
+import type { Classe, Student, Teacher, StudentGrades, SubjectGrade, Term } from '../../types';
 import { findAssessmentRule } from '../scholarship/continuousAssessmentData';
 import { Toaster, toast } from 'react-hot-toast';
 import { SaveIcon } from '../icons/SaveIcon';
@@ -18,6 +18,7 @@ interface GradeEntryModalProps {
   students: Student[];
   allGrades: StudentGrades[];
   setAllGrades: React.Dispatch<React.SetStateAction<StudentGrades[]>>;
+  term: Term;
 }
 
 type LocalGrades = { [studentId: string]: { [examName: string]: string } };
@@ -44,6 +45,7 @@ export const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
   students,
   allGrades,
   setAllGrades,
+  term,
 }) => {
   const [localGrades, setLocalGrades] = useState<LocalGrades>({});
   const [averages, setAverages] = useState<Averages>({});
@@ -71,7 +73,7 @@ export const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
     if (isOpen) {
         const initialLocalGrades: LocalGrades = {};
         sortedStudents.forEach(student => {
-            const studentGradeData = allGrades.find(g => g.studentId === student.id && g.term === 'Trimestre 1');
+            const studentGradeData = allGrades.find(g => g.studentId === student.id && g.term === term);
             const subjectGrade = studentGradeData?.grades.find(sg => sg.subjectName === subjectName);
             if (subjectGrade) {
                 initialLocalGrades[student.id] = {};
@@ -85,7 +87,7 @@ export const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
         setObservations({});
         setIsCalculated(false);
     }
-  }, [isOpen, sortedStudents, allGrades, subjectName]);
+  }, [isOpen, sortedStudents, allGrades, subjectName, term]);
 
   const calculateStudentAverage = (studentId: string, currentGrades: LocalGrades): string => {
     if (!assessmentRule) return 'N/A';
@@ -203,9 +205,9 @@ export const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
             const studentGrades = localGrades[studentId];
             if (!studentGrades) return;
 
-            let studentRecord = newAllGrades.find(g => g.studentId === studentId && g.term === 'Trimestre 1');
+            let studentRecord = newAllGrades.find(g => g.studentId === studentId && g.term === term);
             if (!studentRecord) {
-                studentRecord = { studentId, term: 'Trimestre 1', grades: [] };
+                studentRecord = { studentId, term: term, grades: [] };
                 newAllGrades.push(studentRecord);
             }
 
@@ -283,7 +285,8 @@ export const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
       size="4xl"
     >
         <div className="bg-gray-100 p-4 rounded-lg mb-4 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 text-sm">
+                <p><strong className="font-semibold text-gray-600">Trimestre:</strong> <span className="font-mono text-indigo-700 font-bold">{term}</span></p>
                 <p><strong className="font-semibold text-gray-600">Classe:</strong> <span className="font-mono text-indigo-700 font-bold">{classe.name}</span></p>
                 <p><strong className="font-semibold text-gray-600">Matière:</strong> <span className="font-mono text-indigo-700 font-bold">{subjectName}</span></p>
                 <p><strong className="font-semibold text-gray-600">Enseignant:</strong> <span className="font-mono text-indigo-700 font-bold">{`${teacher.firstName} ${teacher.lastName}`}</span></p>
@@ -417,7 +420,7 @@ export const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
                             <td style={{ textAlign: 'right', padding: '2px' }}><strong>Enseignant:</strong> {`${teacher.firstName} ${teacher.lastName}`}</td>
                         </tr>
                         <tr>
-                             <td style={{ textAlign: 'left', padding: '2px' }}><strong>Année Scolaire:</strong> 2025/2026</td>
+                             <td style={{ textAlign: 'left', padding: '2px' }}><strong>Trimestre:</strong> {term}</td>
                             <td colSpan={2} style={{ textAlign: 'right', padding: '2px' }}><strong>Date d'impression:</strong> {new Date().toLocaleDateString('fr-FR')}</td>
                         </tr>
                     </tbody>

@@ -45,8 +45,7 @@ const AttestationPresencePage: React.FC = () => {
 
           pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
           
-          const blob = pdf.output('blob');
-          window.location.href = URL.createObjectURL(blob);
+          pdf.save(`Attestation_Presence_${student.lastName}_${student.firstName}.pdf`);
           setStatus('done');
         }).catch(err => {
           console.error("Error generating PDF:", err);
@@ -73,7 +72,10 @@ const AttestationPresencePage: React.FC = () => {
         {status === 'done' ? (
           <>
             <h2 className="text-2xl font-semibold text-gray-800">Attestation Générée</h2>
-            <p className="mt-2 text-gray-600">Votre document a été généré avec succès.</p>
+            <p className="mt-2 text-gray-600">Le téléchargement de votre document devrait commencer automatiquement.</p>
+            <button onClick={() => window.close()} className="mt-6 bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition-colors">
+                Fermer
+            </button>
           </>
         ) : (
           <>

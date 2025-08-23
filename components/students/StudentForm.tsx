@@ -4,6 +4,7 @@ import { UserIcon } from '../icons/UserIcon';
 import { AcademicCapIcon } from '../icons/AcademicCapIcon';
 import { UserGroupIcon } from '../icons/UserGroupIcon';
 import { CameraIcon } from '../icons/CameraIcon';
+import { toast } from 'react-hot-toast';
 
 
 interface StudentFormProps {
@@ -23,7 +24,7 @@ const initialFormData = {
     address: '',
     academicLevel: '', // niveau
     academicSpecialty: '', // specialité
-    option: '',
+    option: [],
     classe: '',
     parentPhone: '',
     parentEmail: '',
@@ -31,6 +32,7 @@ const initialFormData = {
 };
 
 const niveauOptions = ['1 annee', '2 annee', '3 annee', '4 annee'];
+const languageSubjects = ['espagnole', 'allemand'];
 
 
 export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCancel, optionalSubjects, classes }) => {
@@ -41,6 +43,7 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
       setFormData({
         ...initialFormData,
         ...student,
+        option: student.option || [],
         photo: null,
       });
     } else {
@@ -52,11 +55,8 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
     if (!formData.academicLevel) {
       return [];
     }
-    // Filter classes by the selected niveau
     const relevantClasses = classes.filter(c => c.niveau === formData.academicLevel);
-    // Get unique specialites from these classes
     const uniqueSpecialites = [...new Set(relevantClasses.map(c => c.specialite))];
-    // Sort them alphabetically
     return uniqueSpecialites.sort();
   }, [formData.academicLevel, classes]);
 
@@ -71,6 +71,8 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
   }, [formData.academicLevel, formData.academicSpecialty, classes]);
 
 
+  const isOptionDisabled = formData.academicLevel !== '3 annee' && formData.academicLevel !== '4 annee';
+  
   useEffect(() => {
     if (!availableSpecialites.includes(formData.academicSpecialty)) {
       setFormData(prev => ({...prev, academicSpecialty: '', classe: ''}));
@@ -78,13 +80,13 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
       setFormData(prev => ({...prev, classe: ''}));
     }
     
-    if (formData.academicLevel !== '3 annee' && formData.academicLevel !== '4 annee') {
-      setFormData(prev => ({...prev, option: ''}));
+    if (isOptionDisabled) {
+      setFormData(prev => ({...prev, option: []}));
     }
-  }, [formData.academicLevel, availableSpecialites, availableClasses]);
+  }, [formData.academicLevel, availableSpecialites, availableClasses, isOptionDisabled]);
+
 
   const isSpecialiteDisabled = !formData.academicLevel;
-  const isOptionDisabled = formData.academicLevel !== '3 annee' && formData.academicLevel !== '4 annee';
   const isClasseDisabled = !formData.academicLevel || !formData.academicSpecialty;
 
 
@@ -98,10 +100,36 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
       setFormData(prev => ({ ...prev, photo: e.target.files[0] as any }));
     }
   };
+  
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, checked } = e.target;
+    setFormData(prev => {
+        const currentOptions = prev.option || [];
+        if (checked) {
+            return { ...prev, option: [...currentOptions, value] };
+        } else {
+            return { ...prev, option: currentOptions.filter((opt: string) => opt !== value) };
+        }
+    });
+  };
 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+     if (formData.academicLevel === '3 annee' || formData.academicLevel === '4 annee') {
+        const selectedOptions = formData.option || [];
+        const selectedLanguages = selectedOptions.filter((opt: string) => languageSubjects.includes(opt));
+
+        if (selectedOptions.length < 2 || selectedOptions.length > 3) {
+            toast.error('Veuillez sélectionner entre 2 et 3 matières optionnelles.');
+            return;
+        }
+        if (selectedLanguages.length !== 1) {
+            toast.error('Veuillez sélectionner exactement une langue comme matière optionnelle.');
+            return;
+        }
+    }
+
     const { photo, ...studentData } = formData;
     onSave(studentData);
   };
@@ -109,12 +137,12 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Personal Information */}
-      <div className="bg-gray-50 rounded-lg">
-        <h2 className="text-md font-semibold text-white bg-blue-600 p-3 rounded-t-md flex items-center">
-            <UserIcon className="h-5 w-5 mr-3" />
+      <div className="border border-gray-200 rounded-lg">
+        <h2 className="text-lg font-semibold text-gray-800 p-4 bg-gray-50 rounded-t-lg flex items-center border-b border-gray-200">
+            <UserIcon className="h-5 w-5 mr-3 text-blue-500" />
             Informations Personnelles
         </h2>
-        <div className="border border-t-0 border-gray-200 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">Prénom</label>
                 <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required />
@@ -146,50 +174,64 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
       </div>
       
       {/* Academic Path */}
-      <div className="bg-gray-50 rounded-lg">
-        <h2 className="text-md font-semibold text-white bg-green-600 p-3 rounded-t-md flex items-center">
-            <AcademicCapIcon className="h-5 w-5 mr-3" />
+      <div className="border border-gray-200 rounded-lg">
+        <h2 className="text-lg font-semibold text-gray-800 p-4 bg-gray-50 rounded-t-lg flex items-center border-b border-gray-200">
+            <AcademicCapIcon className="h-5 w-5 mr-3 text-green-500" />
             Parcours Académique
         </h2>
-        <div className="border border-t-0 border-gray-200 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-             <div>
-                <label htmlFor="academicLevel" className="block text-sm font-medium text-gray-700">Niveau</label>
-                <select id="academicLevel" name="academicLevel" value={formData.academicLevel} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
-                    <option value="">Sélectionnez...</option>
-                    {niveauOptions.map(item => <option key={item} value={item}>{item}</option>)}
-                </select>
+        <div className="p-6 space-y-4">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                <div>
+                    <label htmlFor="academicLevel" className="block text-sm font-medium text-gray-700">Niveau</label>
+                    <select id="academicLevel" name="academicLevel" value={formData.academicLevel} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                        <option value="">Sélectionnez...</option>
+                        {niveauOptions.map(item => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="academicSpecialty" className="block text-sm font-medium text-gray-700">Spécialité</label>
+                    <select id="academicSpecialty" name="academicSpecialty" value={formData.academicSpecialty} onChange={handleChange} disabled={isSpecialiteDisabled} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
+                        <option value="">Sélectionnez...</option>
+                        {availableSpecialites.map(item => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="classe" className="block text-sm font-medium text-gray-700">Classe</label>
+                    <select id="classe" name="classe" value={formData.classe || ''} onChange={handleChange} disabled={isClasseDisabled} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
+                        <option value="">Sélectionnez...</option>
+                        {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
             </div>
             <div>
-                <label htmlFor="academicSpecialty" className="block text-sm font-medium text-gray-700">Spécialité</label>
-                <select id="academicSpecialty" name="academicSpecialty" value={formData.academicSpecialty} onChange={handleChange} disabled={isSpecialiteDisabled} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
-                    <option value="">Sélectionnez...</option>
-                    {availableSpecialites.map(item => <option key={item} value={item}>{item}</option>)}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="classe" className="block text-sm font-medium text-gray-700">Classe</label>
-                <select id="classe" name="classe" value={formData.classe || ''} onChange={handleChange} disabled={isClasseDisabled} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
-                    <option value="">Sélectionnez...</option>
-                    {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="option" className="block text-sm font-medium text-gray-700">Option</label>
-                <select id="option" name="option" value={formData.option} onChange={handleChange} disabled={isOptionDisabled} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100">
-                    <option value="">Sélectionnez...</option>
-                     {optionalSubjects.map(item => <option key={item} value={item}>{item}</option>)}
-                </select>
+                <label className="block text-sm font-medium text-gray-700">Option(s) <span className="text-xs text-gray-500">(pour 3ème/4ème année)</span></label>
+                 <div className={`mt-2 grid grid-cols-2 gap-3 p-3 border rounded-md ${isOptionDisabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}>
+                    {optionalSubjects.map(opt => (
+                        <label key={opt} className={`flex items-center space-x-3 p-2 rounded-md transition-colors ${isOptionDisabled ? 'text-gray-400' : 'cursor-pointer hover:bg-gray-50'} has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-300 has-[:checked]:ring-1 has-[:checked]:ring-indigo-200`}>
+                            <input 
+                                type="checkbox"
+                                value={opt}
+                                checked={formData.option?.includes(opt)}
+                                onChange={handleCheckboxChange}
+                                disabled={isOptionDisabled}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
+                            />
+                            <span className="capitalize">{opt}</span>
+                        </label>
+                    ))}
+                </div>
+                 {!isOptionDisabled && <p className="text-xs text-gray-500 mt-1">Sélectionnez 2 à 3 matières, dont une seule langue (espagnole/allemand).</p>}
             </div>
         </div>
       </div>
 
        {/* Parent Information */}
-      <div className="bg-gray-50 rounded-lg">
-        <h2 className="text-md font-semibold text-white bg-yellow-500 p-3 rounded-t-md flex items-center">
-            <UserGroupIcon className="h-5 w-5 mr-3" />
+      <div className="border border-gray-200 rounded-lg">
+        <h2 className="text-lg font-semibold text-gray-800 p-4 bg-gray-50 rounded-t-lg flex items-center border-b border-gray-200">
+            <UserGroupIcon className="h-5 w-5 mr-3 text-yellow-500" />
             Informations des Parents
         </h2>
-        <div className="border border-t-0 border-gray-200 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
                 <label htmlFor="parentPhone" className="block text-sm font-medium text-gray-700">Téléphone Parents</label>
                 <input type="tel" id="parentPhone" name="parentPhone" value={formData.parentPhone} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
@@ -202,12 +244,12 @@ export const StudentForm: React.FC<StudentFormProps> = ({ student, onSave, onCan
       </div>
 
        {/* Photo */}
-        <div className="bg-gray-50 rounded-lg">
-            <h2 className="text-md font-semibold text-white bg-purple-600 p-3 rounded-t-md flex items-center">
-                <CameraIcon className="h-5 w-5 mr-3" />
+        <div className="border border-gray-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-gray-800 p-4 bg-gray-50 rounded-t-lg flex items-center border-b border-gray-200">
+                <CameraIcon className="h-5 w-5 mr-3 text-purple-500" />
                 Photo
             </h2>
-            <div className="border border-t-0 border-gray-200 p-6">
+            <div className="p-6">
                  <label htmlFor="photo" className="block text-sm font-medium text-gray-700">Photo de l'étudiant</label>
                  <input type="file" id="photo" name="photo" onChange={handleFileChange} accept="image/*" className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
             </div>

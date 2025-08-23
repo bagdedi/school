@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Teacher, Classe, Student, StudentGrades } from '../../types';
+import type { Teacher, Classe, Student, StudentGrades, Term } from '../../types';
 import { mockEvents } from '../timetable/mockData';
 import { mockSubjectCoefficients } from '../scholarship/mockSubjectData';
 import { ResetIcon } from '../icons/ResetIcon';
@@ -14,9 +14,12 @@ interface ResultatPageProps {
   setGrades: React.Dispatch<React.SetStateAction<StudentGrades[]>>;
 }
 
+const terms: Term[] = ['Trimestre 1', 'Trimestre 2', 'Trimestre 3'];
+
 const ResultatPage: React.FC<ResultatPageProps> = ({ teachers, classes, students, grades, setGrades }) => {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState<Term>('Trimestre 1');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Classe | null>(null);
 
@@ -77,10 +80,28 @@ const ResultatPage: React.FC<ResultatPageProps> = ({ teachers, classes, students
   return (
     <>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Saisie des Résultats</h1>
-          <p className="mt-1 text-gray-600">Sélectionnez une matière, un enseignant et une classe pour saisir les notes.</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Saisie des Résultats</h1>
+            <p className="mt-1 text-gray-600">Sélectionnez une matière, un enseignant et une classe pour saisir les notes.</p>
+          </div>
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            {terms.map(term => (
+              <button
+                key={term}
+                onClick={() => setSelectedTerm(term)}
+                className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                  selectedTerm === term
+                    ? 'bg-white text-indigo-700 shadow'
+                    : 'text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {term}
+              </button>
+            ))}
+          </div>
         </div>
+
 
         <div className="bg-white p-6 rounded-xl shadow-md">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -169,6 +190,7 @@ const ResultatPage: React.FC<ResultatPageProps> = ({ teachers, classes, students
           students={students.filter(s => s.classe === selectedClass.name)}
           allGrades={grades}
           setAllGrades={setGrades}
+          term={selectedTerm}
         />
       )}
     </>

@@ -10,10 +10,12 @@ interface StudentDetailsModalProps {
   onClose: () => void;
 }
 
-const DetailItem: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
+const DetailItem: React.FC<{ label: string; value?: string | null | string[] }> = ({ label, value }) => (
   <div>
     <p className="text-sm font-medium text-gray-500">{label}</p>
-    <p className="text-md text-gray-800 capitalize">{value || '-'}</p>
+    <p className="text-md text-gray-800 capitalize">
+        {Array.isArray(value) ? (value.length > 0 ? value.join(', ') : '-') : (value || '-')}
+    </p>
   </div>
 );
 
@@ -56,7 +58,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({ studen
               <DetailItem label="Niveau" value={student.academicLevel} />
               <DetailItem label="Spécialité" value={student.academicSpecialty} />
               <DetailItem label="Classe" value={student.classe} />
-              <DetailItem label="Option" value={student.option} />
+              <DetailItem label="Option(s)" value={student.option} />
               <DetailItem label="Année Scolaire" value={student.schoolYear} />
             </div>
           </div>

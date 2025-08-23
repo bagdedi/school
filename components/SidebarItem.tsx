@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 import type { NavItem } from '../../types';
+import { useTranslation } from '../contexts/LanguageContext';
 
 
 type SubItem = NavItem['subItems'][0];
@@ -15,7 +16,12 @@ interface SidebarItemProps {
 }
 
 export const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, active, alert = false, onClick, subItems }) => {
+  const { t } = useTranslation();
   const hasSubItems = subItems && subItems.length > 0;
+  
+  // Normalize active key by removing the translation key prefix
+  const normalizedActive = active.substring(active.indexOf('.') + 1);
+  const normalizedText = text.substring(text.indexOf('.') + 1);
   const isParentActive = hasSubItems && active.startsWith(text);
   
   const [isOpen, setIsOpen] = useState(isParentActive);
@@ -57,7 +63,7 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, active, al
       `}
       >
         {icon}
-        <span className="ml-4 flex-1">{text}</span>
+        <span className="ml-4 flex-1">{t(text)}</span>
         {hasSubItems && <ChevronDownIcon className={`h-5 w-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
         {alert && !hasSubItems && (
           <div className="absolute right-4 w-2 h-2 rounded-full bg-indigo-400" />
@@ -82,7 +88,7 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({ icon, text, active, al
                 `}
               >
                 {sub.icon && <span className="h-5 w-5 mr-3">{sub.icon}</span>}
-                <span className={!sub.icon ? 'pl-8' : ''}>{sub.name}</span>
+                <span className={!sub.icon ? 'pl-8' : ''}>{t(sub.name)}</span>
               </li>
             );
           })}

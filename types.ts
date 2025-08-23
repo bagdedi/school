@@ -2,6 +2,8 @@ import type React from 'react';
 
 export type AttestationType = 'inscription' | 'presence' | 'both';
 
+export type Term = 'Trimestre 1' | 'Trimestre 2' | 'Trimestre 3';
+
 export interface NavItem {
   name: string;
   icon: React.ReactNode;
@@ -28,7 +30,7 @@ export interface Student {
   // Academic Path
   academicLevel: string; // niveau
   academicSpecialty: string; // specialité
-  option?: string;
+  option?: string[];
   classe?: string;
   academicDiploma?: string;
   studyLevel?: string;
@@ -164,7 +166,7 @@ export interface SubjectGrade {
 
 export interface StudentGrades {
   studentId: string;
-  term: 'Trimestre 1' | 'Trimestre 2' | 'Trimestre 3';
+  term: Term;
   grades: SubjectGrade[];
 }
 
@@ -182,3 +184,41 @@ export type AttendanceData = {
     [className: string]: DailyClassAttendance;
   };
 };
+
+// --- NEW TYPES FOR DISCIPLINE ---
+export type IncidentType = 'Avertissement' | 'Blâme' | 'Retenue' | 'Exclusion Temporaire' | 'Conseil de Discipline' | 'Exclusion Définitive';
+
+export interface DisciplineIncident {
+  id: string;
+  studentId: string;
+  date: string; // YYYY-MM-DD
+  type: IncidentType;
+  reason: string;
+  reporter: string; // e.g., teacher's name or 'Administration'
+  details?: {
+    duration?: number; // for suspension (in days) or study (in hours)
+    decision?: string; // for council meetings
+  };
+}
+
+export interface ConseilDisciplineMembers {
+  censeur: string;
+  conseillerPrincipal: string;
+  conseillerInternat: string;
+  enseignantsElus: string[]; // Array of teacher IDs
+  representantParents: string;
+}
+
+export type CouncilMeetingStatus = 'Scheduled' | 'Completed' | 'Cancelled';
+
+export interface DisciplineCouncilMeeting {
+  id: string;
+  studentId: string;
+  referralIncidentId: string;
+  meetingDate: string; // YYYY-MM-DD
+  status: CouncilMeetingStatus;
+  membersPresent?: string[]; // Array of names
+  discussionSummary?: string;
+  decision?: IncidentType | 'Aucune sanction';
+  decisionIncidentId?: string; // ID of the resulting incident
+}
