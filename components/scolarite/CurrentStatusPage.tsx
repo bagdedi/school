@@ -10,7 +10,6 @@ import { BookOpenIcon } from '../icons/BookOpenIcon';
 import { BuildingLibraryIcon } from '../icons/BuildingLibraryIcon';
 import { CoffeeIcon } from '../icons/CoffeeIcon';
 import { UserGroupIcon } from '../icons/UserGroupIcon';
-import { ArrowPathIcon } from '../icons/ArrowPathIcon';
 
 // --- HELPER FUNCTIONS ---
 
@@ -144,14 +143,10 @@ const CurrentStatusPage: React.FC<CurrentStatusPageProps> = ({ classes, workingH
   }, [workingHours]);
 
 
-  const handleTimeNavigation = (direction: 'prev' | 'next' | 'now' | 'sync') => {
+  const handleTimeNavigation = (direction: 'prev' | 'next' | 'now') => {
     if (direction === 'now') {
       setSelectedTime(new Date());
       return;
-    }
-    if (direction === 'sync') {
-        setSelectedTime(realTime);
-        return;
     }
 
     const selectedMinutes = selectedTime.getHours() * 60 + selectedTime.getMinutes();
@@ -455,14 +450,6 @@ const CurrentStatusPage: React.FC<CurrentStatusPageProps> = ({ classes, workingH
             <div className="flex items-center justify-center space-x-2 sm:space-x-4">
                 <button onClick={() => handleTimeNavigation('prev')} disabled={!canGoPrev} className="p-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={t('currentStatusPage.previousHour')}><ChevronLeftIcon /></button>
                 <button onClick={() => handleTimeNavigation('now')} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors">{t('currentStatusPage.now')}</button>
-                <button 
-                    onClick={() => handleTimeNavigation('sync')} 
-                    className="p-3 bg-violet-100 text-violet-600 rounded-lg hover:bg-violet-200 transition-colors"
-                    aria-label="Synchroniser avec l'heure actuelle"
-                    title="Synchroniser"
-                >
-                    <ArrowPathIcon className="h-6 w-6" />
-                </button>
                 <button onClick={() => handleTimeNavigation('next')} disabled={!canGoNext} className="p-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label={t('currentStatusPage.nextHour')}><ChevronRightIcon /></button>
             </div>
         </div>
