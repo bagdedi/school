@@ -1,4 +1,4 @@
-import type { TimetableEvent, DayWorkingHours, Classe, Teacher, Student, SubjectCoefficient, ConseilDisciplineMembers } from '../../types';
+import type { TimetableEvent, DayWorkingHours, Classe, Teacher, Student, SubjectCoefficient } from '../../types';
 import { mockSubjectCoefficients } from '../scholarship/mockSubjectData';
 
 // --- CENTRALIZED DATA GENERATION ---
@@ -6,20 +6,9 @@ import { mockSubjectCoefficients } from '../scholarship/mockSubjectData';
 // --- HELPERS & SHARED DATA ---
 const getSpecialiteAbbr = (specialite: string): string => {
   const abbreviations: { [key: string]: string } = {
-    'Tronc commun': 'AS',
-    'Tronc Commun': 'AS',
-    'Sport': 'SPORT',
-    'Sciences': 'SC',
-    'Économie et Services': 'ECO-SERV',
-    'Economie et Gestion': 'ECO-GES',
-    'Lettres': 'LETT',
-    'Sciences Expérimentales': 'SC.EXP',
-    'Mathématiques': 'MATH',
-    'Techniques': 'TECH',
-    'Sciences Techniques': 'TECH',
-    'Technologie': 'TECH',
-    'Sciences Informatiques': 'INFO',
-    "Sciences de l'Informatique": 'INFO',
+    'Tronc commun': 'AS', 'Tronc Commun': 'AS', 'Sport': 'SPORT', 'Sciences': 'SC', 'Économie et Services': 'ECO-SERV',
+    'Economie et Gestion': 'ECO-GES', 'Lettres': 'LETT', 'Sciences Expérimentales': 'SC.EXP', 'Mathématiques': 'MATH',
+    'Techniques': 'TECH', 'Technologie': 'TECH', 'Sciences Informatiques': 'INFO', "Sciences de l'Informatique": 'INFO',
     "Technologie de l'Informatique": 'INFO-TECH'
   };
   return abbreviations[specialite] || specialite.substring(0, 4).toUpperCase();
@@ -77,34 +66,25 @@ const diplomas = ['Doctorat', 'Masters', 'Bachelors'];
 const statuses = ['Permanent', 'Vacataire', 'Contractuel'];
 
 const generateTeachers = (): Teacher[] => {
-    const subjectWorkload: { [subject: string]: { totalHours: number, classCount: number } } = {};
+    const subjectHours: { [subject: string]: number } = {};
     initialClasses.forEach(c => {
         mockSubjectCoefficients
             .filter(sc => sc.level === c.niveau && sc.specialization === c.specialite)
             .forEach(sc => {
-                if (!subjectWorkload[sc.subject]) {
-                    subjectWorkload[sc.subject] = { totalHours: 0, classCount: 0 };
-                }
                 const totalHours = parseFloat(sc.hours);
-                const groupHours = parseFloat(sc.groupHours || '0');
                 if (!isNaN(totalHours)) {
-                    const effectiveWorkload = totalHours + groupHours;
-                    subjectWorkload[sc.subject].totalHours += effectiveWorkload;
-                    subjectWorkload[sc.subject].classCount += 1;
+                    subjectHours[sc.subject] = (subjectHours[sc.subject] || 0) + totalHours;
                 }
             });
     });
 
     const teachers: Teacher[] = [];
     let teacherIdCounter = 1;
-    const TARGET_HOURS_PER_TEACHER = 18;
-    const MAX_CLASSES_PER_TEACHER = 12;
+    const TARGET_HOURS_PER_TEACHER = 16; 
 
-    Object.keys(subjectWorkload).forEach(subject => {
-        const { totalHours, classCount } = subjectWorkload[subject];
-        const teachersByHours = Math.ceil(totalHours / TARGET_HOURS_PER_TEACHER);
-        const teachersByClasses = Math.ceil(classCount / MAX_CLASSES_PER_TEACHER);
-        const numTeachersNeeded = Math.max(1, teachersByHours, teachersByClasses);
+    Object.keys(subjectHours).forEach(subject => {
+        const totalHours = subjectHours[subject];
+        const numTeachersNeeded = Math.max(1, Math.ceil(totalHours / TARGET_HOURS_PER_TEACHER));
 
         for (let i = 0; i < numTeachersNeeded; i++) {
             const gender = Math.random() > 0.5 ? 'Male' : 'Female';
@@ -135,6 +115,7 @@ const generateTeachers = (): Teacher[] => {
                 rib: Array(20).fill(0).map(() => Math.floor(Math.random() * 10)).join(''),
                 idType: 'CIN',
                 idNumber: Array(8).fill(0).map(() => Math.floor(Math.random() * 10)).join(''),
+                password: 'password123'
             });
             teacherIdCounter++;
         }
@@ -225,15 +206,6 @@ const generateHalls = (): string[] => {
 };
 export const initialHalls = generateHalls();
 
-// --- CONSEIL DE DISCIPLINE MOCK DATA ---
-export const mockConseilDisciplineMembers: ConseilDisciplineMembers = {
-    censeur: 'Ali Mansouri',
-    conseillerPrincipal: 'Salma Zouari',
-    conseillerInternat: 'Karim Trabelsi',
-    enseignantsElus: mockTeachers.slice(0, 5).map(t => t.id),
-    representantParents: 'Nour Guesmi',
-};
-
 // --- TIMETABLE GENERATION ALGORITHM ---
 
 const subjectColors = [
@@ -303,7 +275,7 @@ const generateFullTimetable = (): TimetableEvent[] => {
     });
 
     // Create a list of all teaching tasks
-    const allTasks: { class: Classe, subjectInfo: SubjectCoefficient, effectiveWorkload?: number }[] = [];
+    const allTasks: { class: Classe, subjectInfo: SubjectCoefficient }[] = [];
     const techSpecialtyMap = new Map<string, 'Génie Électrique' | 'Génie Mécanique'>();
     initialClasses.forEach(c => {
         if (c.specialite === 'Sciences Techniques') {
@@ -322,19 +294,17 @@ const generateFullTimetable = (): TimetableEvent[] => {
         subjectsForClass.forEach(subjectInfo => allTasks.push({ class: c, subjectInfo }));
     });
     
-    allTasks.forEach(task => {
-        const totalHours = parseFloat(task.subjectInfo.hours) || 0;
-        const groupHours = parseFloat(task.subjectInfo.groupHours || '0') || 0;
-        task.effectiveWorkload = totalHours + groupHours;
-    });
-    
-    // Sort tasks by effective workload descending to place heavier tasks first
-    allTasks.sort((a, b) => (b.effectiveWorkload || 0) - (a.effectiveWorkload || 0));
+    // Sort tasks by hours descending to place heavier tasks first
+    allTasks.sort((a, b) => parseFloat(b.subjectInfo.hours) - parseFloat(a.subjectInfo.hours));
 
     allTasks.forEach(task => {
         const { class: c, subjectInfo } = task;
         const subject = subjectInfo.subject;
-        const effectiveWorkload = task.effectiveWorkload || 0;
+        const totalHours = parseFloat(subjectInfo.hours) || 0;
+        const groupHours = parseFloat(subjectInfo.groupHours || '0') || 0;
+        // A student sees `totalHours`. A teacher teaches `totalHours - groupHours` full class, and `groupHours` to each of 2 groups.
+        // Total teacher time: (totalHours - groupHours) + 2 * groupHours = totalHours + groupHours.
+        const effectiveWorkload = totalHours + groupHours;
 
         let teachersForSubject = mockTeachers.filter(t => t.specialty === subject);
         if (subject === 'Technologie' && (c.niveau === '1 annee' || c.niveau === '2 annee')) {
@@ -349,11 +319,11 @@ const generateFullTimetable = (): TimetableEvent[] => {
         const scoreTeacher = (teacherName: string, isRelaxed: boolean = false) => {
             const currentLoad = teacherWorkload.get(teacherName)!;
             const currentLevels = teacherLevels.get(teacherName)!;
-            const newLoad = currentLoad + effectiveWorkload;
+            const newLoad = currentLoad + effectiveWorkload; // Use effective workload for scoring
             const isNewLevel = !currentLevels.has(c.niveau);
 
             // Hard constraints
-            if (newLoad > 20) return -Infinity; // Increased limit slightly
+            if (newLoad > 18.5) return -Infinity;
             if (!isRelaxed && isNewLevel && currentLevels.size >= 2) return -Infinity;
 
             // Soft scoring
@@ -390,7 +360,7 @@ const generateFullTimetable = (): TimetableEvent[] => {
         if (bestTeacher) {
             const { name } = bestTeacher;
             teacherAssignments.set(`${c.name}-${subject}`, name);
-            teacherWorkload.set(name, teacherWorkload.get(name)! + effectiveWorkload);
+            teacherWorkload.set(name, teacherWorkload.get(name)! + effectiveWorkload); // Use effective workload for assignment
             const levels = teacherLevels.get(name)!;
             levels.add(c.niveau);
             teacherLevels.set(name, levels);
@@ -400,7 +370,7 @@ const generateFullTimetable = (): TimetableEvent[] => {
             if(fallbackTeacher) {
                 const { name } = fallbackTeacher;
                 teacherAssignments.set(`${c.name}-${subject}`, name);
-                teacherWorkload.set(name, teacherWorkload.get(name)! + effectiveWorkload);
+                teacherWorkload.set(name, teacherWorkload.get(name)! + effectiveWorkload); // Use effective workload for assignment
                 const levels = teacherLevels.get(name)!;
                 levels.add(c.niveau);
                 teacherLevels.set(name, levels);
@@ -416,9 +386,6 @@ const generateFullTimetable = (): TimetableEvent[] => {
     const groupSessionsByClass = new Map<string, Session[]>();
     const splitHoursIntoSessions = (totalHours: number): number[] => {
         if (totalHours <= 0) return [];
-
-        if (totalHours === 2.5) return [1, 1, 0.5];
-
         const sessions: number[] = [];
         let remainingHours = totalHours;
         const validDurations = [2, 1.5, 1, 0.5];

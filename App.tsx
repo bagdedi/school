@@ -7,7 +7,7 @@ import { TeachersIcon } from './components/icons/TeachersIcon';
 import { ScholarshipIcon } from './components/icons/ScholarshipIcon';
 import { SettingsIcon } from './components/icons/SettingsIcon';
 import { LogoIcon } from './components/icons/LogoIcon';
-import type { NavItem, DayWorkingHours, Classe, Student, SharedFilterState, Payment, StudentGrades, SubjectCoefficient, Teacher, AttendanceData, DisciplineIncident, ConseilDisciplineMembers, DisciplineCouncilMeeting } from './types';
+import type { NavItem, DayWorkingHours, Classe, Student, SharedFilterState, Payment, StudentGrades, SubjectCoefficient, Teacher, AttendanceData, TeacherDocument } from './types';
 import DashboardPage from './components/dashboard/DashboardPage';
 import StudentsPage from './components/students/StudentsPage';
 import TeachersPage from './components/teachers/TeachersPage';
@@ -23,7 +23,7 @@ import TimetableHallsPage from './components/timetable/TimetableHallsPage';
 import EtablissementPage from './components/settings/EtablissementPage';
 import { BuildingOfficeIcon } from './components/icons/BuildingOfficeIcon';
 import EtatPedagogiquePage from './components/scholarship/EtatPedagogiquePage';
-import { initialClasses, mockStudents, initialWorkingHours, initialHalls, mockTeachers, mockConseilDisciplineMembers } from './components/timetable/mockData';
+import { initialClasses, mockStudents, initialWorkingHours, initialHalls, mockTeachers } from './components/timetable/mockData';
 import { DocumentChartBarIcon } from './components/icons/DocumentChartBarIcon';
 import ResultatPage from './components/results/ResultatPage';
 import { CurrencyDollarIcon } from './components/icons/CurrencyDollarIcon';
@@ -38,15 +38,11 @@ import { ClipboardDocumentCheckIcon } from './components/icons/ClipboardDocument
 import { ChartBarIcon } from './components/icons/ChartBarIcon';
 import AttendanceAnalyticsPage from './components/students/AttendanceAnalyticsPage';
 import EtatSaisiePage from './components/results/EtatSaisiePage';
-import { ScaleIcon } from './components/icons/ScaleIcon';
-import DisciplinePage from './components/students/DisciplinePage';
-import { mockDisciplineIncidents } from './components/students/mockDisciplineData';
-import ConseilDisciplinePage from './components/discipline/ConseilDisciplinePage';
-import { GavelIcon } from './components/icons/GavelIcon';
-import { mockCouncilMeetings } from './components/discipline/mockCouncilData';
-import { DocumentTextIcon } from './components/icons/DocumentTextIcon';
-import { ClockIcon } from './components/icons/ClockIcon';
-import CurrentStatusPage from './components/scolarite/CurrentStatusPage';
+
+// Teacher Portal Imports
+import TeacherLoginPage from './components/teacher_portal/TeacherLoginPage';
+import TeacherSignupPage from './components/teacher_portal/TeacherSignupPage';
+import TeacherPortal from './components/teacher_portal/TeacherPortal';
 
 
 // Custom hook for persisting state to localStorage
@@ -78,7 +74,6 @@ const App: React.FC = () => {
   const [schoolName, setSchoolName] = usePersistentState('schoolName', 'Northwood High');
   const [directorName, setDirectorName] = usePersistentState('directorName', 'Dr. Helmi Ahmed EL KAMEL');
   const [schoolLogoUrl, setSchoolLogoUrl] = usePersistentState<string | null>('schoolLogoUrl', null);
-  const [schoolYear, setSchoolYear] = usePersistentState('schoolYear', '2025-2026');
   const [workingHours, setWorkingHours] = usePersistentState<DayWorkingHours[]>('workingHours', initialWorkingHours);
   const [optionalSubjects, setOptionalSubjects] = usePersistentState<string[]>('optionalSubjects', ['Musique', 'espagnole', 'allemand', 'Dessin']);
   const [classes, setClasses] = usePersistentState<Classe[]>('classes', initialClasses);
@@ -89,9 +84,8 @@ const App: React.FC = () => {
   const [grades, setGrades] = usePersistentState<StudentGrades[]>('grades', mockGradeData);
   const [subjectCoefficients, setSubjectCoefficients] = usePersistentState<SubjectCoefficient[]>('subjectCoefficients', mockSubjectCoefficients);
   const [attendanceData, setAttendanceData] = usePersistentState<AttendanceData>('attendanceData', {});
-  const [disciplineIncidents, setDisciplineIncidents] = usePersistentState<DisciplineIncident[]>('disciplineIncidents', mockDisciplineIncidents);
-  const [conseilDisciplineMembers, setConseilDisciplineMembers] = usePersistentState<ConseilDisciplineMembers>('conseilDisciplineMembers', mockConseilDisciplineMembers);
-  const [disciplineCouncilMeetings, setDisciplineCouncilMeetings] = usePersistentState<DisciplineCouncilMeeting[]>('disciplineCouncilMeetings', mockCouncilMeetings);
+  const [documents, setDocuments] = usePersistentState<TeacherDocument[]>('teacherDocuments', []);
+  const [loggedInTeacher, setLoggedInTeacher] = usePersistentState<Teacher | null>('loggedInTeacher', null);
 
 
   const schoolLogo = schoolLogoUrl ? <img src={schoolLogoUrl} alt="School Logo" className="h-8 w-8 object-contain" /> : <LogoIcon />;
@@ -126,6 +120,41 @@ const App: React.FC = () => {
 
   // Simple routing based on path
   const path = window.location.pathname;
+  
+  if (path.startsWith('/teacher')) {
+    if (!loggedInTeacher) {
+      if (path === '/teacher/signup') {
+        return <TeacherSignupPage teachers={teachers} setTeachers={setTeachers} />;
+      }
+      return <TeacherLoginPage teachers={teachers} onLogin={(teacher) => {
+          setLoggedInTeacher(teacher);
+          window.location.href = '/teacher/dashboard';
+      }} />;
+    }
+
+    if(path === '/teacher' || path === '/teacher/'){
+        window.location.href = '/teacher/dashboard';
+        return null; // or a loading spinner while redirecting
+    }
+
+    return <TeacherPortal
+        teacher={loggedInTeacher}
+        onLogout={() => {
+            setLoggedInTeacher(null);
+            window.location.href = '/teacher/login';
+        }}
+        students={students}
+        classes={classes}
+        grades={grades}
+        setGrades={setGrades}
+        attendanceData={attendanceData}
+        setAttendanceData={setAttendanceData}
+        documents={documents}
+        setDocuments={setDocuments}
+        workingHours={workingHours}
+     />;
+  }
+
   if (path.startsWith('/attestation/inscription')) {
     return <AttestationInscriptionPage />;
   }
@@ -141,11 +170,8 @@ const App: React.FC = () => {
       icon: <StudentsIcon />,
       subItems: [
         { name: 'sidebar.management', icon: <UserGroupIcon className="h-5 w-5" /> },
-        { name: 'sidebar.currentStatus', icon: <ClockIcon className="h-5 w-5" /> },
         { name: 'sidebar.registers', icon: <ClipboardDocumentCheckIcon className="h-5 w-5" /> },
         { name: 'sidebar.attendanceTracking', icon: <ChartBarIcon className="h-5 w-5" /> },
-        { name: 'sidebar.incidentTracking', icon: <DocumentTextIcon className="h-5 w-5" /> },
-        { name: 'sidebar.councilMeetings', icon: <GavelIcon className="h-5 w-5" /> },
       ],
     },
     { name: 'sidebar.teachers', icon: <TeachersIcon />, alert: true },
@@ -207,13 +233,6 @@ const App: React.FC = () => {
           setSearchQuery={setSearchQuery}
           onResetFilters={resetSharedFilters}
         />;
-      case 'sidebar.scolarite > sidebar.currentStatus':
-        return <CurrentStatusPage
-          classes={classes}
-          workingHours={workingHours}
-          teachers={teachers}
-          halls={halls}
-        />;
       case 'sidebar.scolarite > sidebar.registers':
         return <PresencePunishmentPage 
           classes={classes} 
@@ -221,8 +240,6 @@ const App: React.FC = () => {
           workingHours={workingHours}
           attendanceData={attendanceData}
           setAttendanceData={setAttendanceData}
-          disciplineIncidents={disciplineIncidents}
-          setDisciplineIncidents={setDisciplineIncidents}
         />;
        case 'sidebar.scolarite > sidebar.attendanceTracking':
         return <AttendanceAnalyticsPage
@@ -232,24 +249,6 @@ const App: React.FC = () => {
           filters={sharedFilters}
           onFilterChange={handleFilterChange}
           onResetFilters={resetSharedFilters}
-        />;
-      case 'sidebar.scolarite > sidebar.incidentTracking':
-        return <DisciplinePage
-          classes={classes}
-          students={students}
-          disciplineIncidents={disciplineIncidents}
-          setDisciplineIncidents={setDisciplineIncidents}
-          setDisciplineCouncilMeetings={setDisciplineCouncilMeetings}
-        />;
-      case 'sidebar.scolarite > sidebar.councilMeetings':
-        return <ConseilDisciplinePage
-          students={students}
-          teachers={teachers}
-          disciplineIncidents={disciplineIncidents}
-          setDisciplineIncidents={setDisciplineIncidents}
-          councilMeetings={disciplineCouncilMeetings}
-          setCouncilMeetings={setDisciplineCouncilMeetings}
-          conseilDisciplineMembers={conseilDisciplineMembers}
         />;
       case 'sidebar.teachers':
         return <TeachersPage teachers={teachers} setTeachers={setTeachers} />;
@@ -315,12 +314,8 @@ const App: React.FC = () => {
         return <EtablissementPage
           schoolName={schoolName}
           setSchoolName={setSchoolName}
-          directorName={directorName}
-          setDirectorName={setDirectorName}
           schoolLogoUrl={schoolLogoUrl}
           setSchoolLogoUrl={setSchoolLogoUrl}
-          schoolYear={schoolYear}
-          setSchoolYear={setSchoolYear}
           workingHours={workingHours}
           setWorkingHours={setWorkingHours}
           optionalSubjects={optionalSubjects}
@@ -329,6 +324,8 @@ const App: React.FC = () => {
           setClasses={setClasses}
           halls={halls}
           setHalls={setHalls}
+          directorName={directorName}
+          setDirectorName={setDirectorName}
           students={students}
           setStudents={setStudents}
           teachers={teachers}
@@ -341,12 +338,6 @@ const App: React.FC = () => {
           setAttendanceData={setAttendanceData}
           subjectCoefficients={subjectCoefficients}
           setSubjectCoefficients={setSubjectCoefficients}
-          disciplineIncidents={disciplineIncidents}
-          setDisciplineIncidents={setDisciplineIncidents}
-          conseilDisciplineMembers={conseilDisciplineMembers}
-          setConseilDisciplineMembers={setConseilDisciplineMembers}
-          disciplineCouncilMeetings={disciplineCouncilMeetings}
-          setDisciplineCouncilMeetings={setDisciplineCouncilMeetings}
         />;
       case 'sidebar.settings > sidebar.general':
         return <SettingsPage />;

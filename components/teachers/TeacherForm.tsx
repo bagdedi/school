@@ -23,6 +23,7 @@ const initialFormData = {
   placeOfBirth: '',
   nationality: '',
   address: '',
+  password: '',
   diploma: 'Doctorat',
   specialty: '',
   professionalStatus: 'Vacataire',
@@ -74,16 +75,16 @@ export const TeacherForm: React.FC<TeacherFormProps> = ({ teacher, onSave, onCan
       <div className="bg-gray-50 rounded-lg">
         <h2 className="text-md font-semibold text-white bg-cyan-500 p-3 rounded-t-md flex items-center">
             <UserIcon className="h-5 w-5 mr-3" />
-            Informations Personnelles
+            Informations Personnelles et Compte
         </h2>
         <div className="border border-t-0 border-gray-200 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email (identifiant)</label>
                 <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required />
             </div>
              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Téléphone</label>
-                <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required />
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
+                <input type="password" id="password" name="password" value={formData.password} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required={!teacher} placeholder={teacher ? 'Laisser vide pour ne pas changer' : ''} />
             </div>
             <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">Prénom</label>
@@ -92,6 +93,10 @@ export const TeacherForm: React.FC<TeacherFormProps> = ({ teacher, onSave, onCan
             <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">Nom</label>
                 <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required />
+            </div>
+            <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Téléphone</label>
+                <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required />
             </div>
             <div>
                 <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">Date de Naissance</label>
@@ -234,10 +239,10 @@ export const TeacherForm: React.FC<TeacherFormProps> = ({ teacher, onSave, onCan
 
       <div className="flex justify-end space-x-3 pt-4">
         <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
-          Cancel
+          Annuler
         </button>
         <button type="submit" className="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-          {teacher ? 'Save Changes' : 'Add Teacher'}
+          {teacher ? 'Enregistrer' : 'S\'inscrire'}
         </button>
       </div>
     </form>

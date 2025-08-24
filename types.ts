@@ -56,6 +56,7 @@ export interface Teacher {
   placeOfBirth: string;
   nationality: string;
   address: string;
+  password?: string;
   // Professional Info
   diploma: string;
   specialty: string;
@@ -185,40 +186,15 @@ export type AttendanceData = {
   };
 };
 
-// --- NEW TYPES FOR DISCIPLINE ---
-export type IncidentType = 'Avertissement' | 'Blâme' | 'Retenue' | 'Exclusion Temporaire' | 'Conseil de Discipline' | 'Exclusion Définitive';
-
-export interface DisciplineIncident {
+// --- NEW TYPES FOR TEACHER DOCUMENTS ---
+export interface TeacherDocument {
   id: string;
-  studentId: string;
-  date: string; // YYYY-MM-DD
-  type: IncidentType;
-  reason: string;
-  reporter: string; // e.g., teacher's name or 'Administration'
-  details?: {
-    duration?: number; // for suspension (in days) or study (in hours)
-    decision?: string; // for council meetings
-  };
-}
-
-export interface ConseilDisciplineMembers {
-  censeur: string;
-  conseillerPrincipal: string;
-  conseillerInternat: string;
-  enseignantsElus: string[]; // Array of teacher IDs
-  representantParents: string;
-}
-
-export type CouncilMeetingStatus = 'Scheduled' | 'Completed' | 'Cancelled';
-
-export interface DisciplineCouncilMeeting {
-  id: string;
-  studentId: string;
-  referralIncidentId: string;
-  meetingDate: string; // YYYY-MM-DD
-  status: CouncilMeetingStatus;
-  membersPresent?: string[]; // Array of names
-  discussionSummary?: string;
-  decision?: IncidentType | 'Aucune sanction';
-  decisionIncidentId?: string; // ID of the resulting incident
+  teacherId: string;
+  title: string;
+  fileUrl: string; // Data URL
+  fileName: string;
+  fileType: string;
+  niveau: string[];
+  specialite: string[];
+  uploadedAt: string;
 }

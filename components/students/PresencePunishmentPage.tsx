@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import type { Classe, Student, TimetableEvent, DayWorkingHours, AttendanceStatus, DailyClassAttendance, AttendanceData, DisciplineIncident } from '../../types';
+import React, { useState, useMemo } from 'react';
+import type { Classe, Student, TimetableEvent, DayWorkingHours, AttendanceStatus, DailyClassAttendance, AttendanceData } from '../../types';
 import { mockEvents } from '../timetable/mockData';
 import { Toaster, toast } from 'react-hot-toast';
-import { useTranslation } from '../../contexts/LanguageContext';
 
 // --- HELPER FUNCTIONS & CONSTANTS ---
 const timeToMinutes = (time: string): number => {
@@ -239,15 +238,10 @@ interface PresencePunishmentPageProps {
   workingHours: DayWorkingHours[];
   attendanceData: AttendanceData;
   setAttendanceData: React.Dispatch<React.SetStateAction<AttendanceData>>;
-  disciplineIncidents: DisciplineIncident[];
-  setDisciplineIncidents: React.Dispatch<React.SetStateAction<DisciplineIncident[]>>;
 }
 
-const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes, students, workingHours, attendanceData, setAttendanceData, disciplineIncidents, setDisciplineIncidents }) => {
-  const { t } = useTranslation();
+const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes, students, workingHours, attendanceData, setAttendanceData }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [lastAttendanceChange, setLastAttendanceChange] = useState<{studentId: string, status: AttendanceStatus | null} | null>(null);
-
 
   const levels = useMemo(() => {
     const uniqueLevels = [...new Set(classes.map(c => c.niveau))];
@@ -298,69 +292,13 @@ const PresencePunishmentPage: React.FC<PresencePunishmentPageProps> = ({ classes
               }
           };
       });
-      setLastAttendanceChange({ studentId, status });
   };
-
-  useEffect(() => {
-    if (!lastAttendanceChange || lastAttendanceChange.status !== 'A' || !selectedClass) {
-        return;
-    }
-
-    const { studentId } = lastAttendanceChange;
-    const student = students.find(s => s.id === studentId);
-    if (!student) return;
-
-    const currentMonth = selectedDate.getMonth();
-    const currentYear = selectedDate.getFullYear();
-    const monthName = selectedDate.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
-    const reasonForAbsenceWarning = t('presencePunishmentPage.automaticWarningReason', { monthName });
-
-    const hasExistingWarning = disciplineIncidents.some(inc => 
-        inc.studentId === studentId &&
-        inc.reason === reasonForAbsenceWarning
-    );
-
-    if (hasExistingWarning) {
-        setLastAttendanceChange(null);
-        return;
-    }
-
-    let absenceCountThisMonth = 0;
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-
-    for (let d = new Date(firstDayOfMonth); d <= lastDayOfMonth; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0];
-        const dayAttendance = attendanceData[dateStr]?.[student.classe || ''];
-        if (dayAttendance && dayAttendance[studentId]) {
-            absenceCountThisMonth += Object.values(dayAttendance[studentId]).filter(s => s === 'A').length;
-        }
-    }
-    
-    const ABSENCE_THRESHOLD = 3;
-    
-    if (absenceCountThisMonth >= ABSENCE_THRESHOLD) {
-        const newWarning: DisciplineIncident = {
-            id: `D${Date.now()}`,
-            studentId: studentId,
-            date: new Date().toISOString().split('T')[0],
-            type: 'Avertissement',
-            reason: reasonForAbsenceWarning,
-            reporter: 'Système (Présences)',
-        };
-        
-        setDisciplineIncidents(prev => [...prev, newWarning]);
-        toast.success(t('presencePunishmentPage.automaticWarningToast', { studentName: `${student.firstName} ${student.lastName}` }));
-    }
-
-    setLastAttendanceChange(null);
-
-  }, [lastAttendanceChange, attendanceData, disciplineIncidents, students, setDisciplineIncidents, selectedDate, selectedClass, t]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const dateValue = e.target.value;
       if (dateValue) {
           const dateParts = dateValue.split('-').map(Number);
+          // Handles timezone issues by creating date with local timezone's midnight
           setSelectedDate(new Date(dateParts[0], dateParts[1] - 1, dateParts[2]));
       }
   };

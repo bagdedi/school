@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const BuildingLibraryIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" }) => (
+export const LogoutIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     className={className}
@@ -12,7 +12,7 @@ export const BuildingLibraryIcon: React.FC<{ className?: string }> = ({ classNam
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"
+      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
     />
   </svg>
 );
