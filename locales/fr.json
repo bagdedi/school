@@ -20,7 +20,11 @@
         "establishment": "Etablissement",
         "general": "Général",
         "adminUser": "Utilisateur Admin",
-        "documents": "Documents"
+        "documents": "Documents",
+        "messaging": "Messagerie",
+        "sendMessages": "Envoyer messages",
+        "messageHistory": "Historique",
+        "messageTemplates": "Modèles"
     },
     "common": {
         "noData": "Aucune donnée disponible",
