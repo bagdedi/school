@@ -44,6 +44,13 @@ import TeacherLoginPage from './components/teacher_portal/TeacherLoginPage';
 import TeacherSignupPage from './components/teacher_portal/TeacherSignupPage';
 import TeacherPortal from './components/teacher_portal/TeacherPortal';
 
+// Messaging Imports
+import { MessageIcon } from './components/icons/MessageIcon';
+import { HistoryIcon } from './components/icons/HistoryIcon';
+import { TemplateIcon } from './components/icons/TemplateIcon';
+import { MessagingPage } from './components/messaging/MessagingPage';
+import { TemplatesPage } from './components/messaging/TemplatesPage';
+
 
 // Custom hook for persisting state to localStorage
 function usePersistentState<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -203,6 +210,15 @@ const App: React.FC = () => {
       ]
     },
     { 
+      name: 'sidebar.messaging', 
+      icon: <MessageIcon />,
+      subItems: [
+        { name: 'sidebar.sendMessages', icon: <MessageIcon className="h-4 w-4" /> },
+        { name: 'sidebar.messageHistory', icon: <HistoryIcon className="h-4 w-4" /> },
+        { name: 'sidebar.messageTemplates', icon: <TemplateIcon className="h-4 w-4" /> },
+      ]
+    },
+    { 
       name: 'sidebar.settings', 
       icon: <SettingsIcon />,
       subItems: [
@@ -309,6 +325,19 @@ const App: React.FC = () => {
           directorName={directorName}
           subjectCoefficients={subjectCoefficients}
         />;
+      case 'sidebar.messaging':
+      case 'sidebar.messaging > sidebar.sendMessages':
+        return <MessagingPage
+          students={filteredStudents}
+          teachers={teachers}
+        />;
+      case 'sidebar.messaging > sidebar.messageHistory':
+        return <MessagingPage
+          students={filteredStudents}
+          teachers={teachers}
+        />;
+      case 'sidebar.messaging > sidebar.messageTemplates':
+        return <TemplatesPage />;
       case 'sidebar.settings': // Default to the first settings page
       case 'sidebar.settings > sidebar.establishment':
         return <EtablissementPage

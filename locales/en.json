@@ -20,7 +20,11 @@
         "establishment": "Establishment",
         "general": "General",
         "adminUser": "Admin User",
-        "documents": "Documents"
+        "documents": "Documents",
+        "messaging": "Messaging",
+        "sendMessages": "Send Messages",
+        "messageHistory": "History",
+        "messageTemplates": "Templates"
     },
     "common": {
         "noData": "No data available",
